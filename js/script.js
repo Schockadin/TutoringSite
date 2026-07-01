@@ -18,7 +18,7 @@
 
   var form = document.getElementById('contactForm');
   var formNote = document.getElementById('formNote');
-  var CONTACT_EMAIL = 'deine-email@beispiel.de';
+  var CONTACT_EMAIL = 'dominic.zander@outlook.de';
 
   function setError(fieldName, message) {
     var errorEl = form.querySelector('[data-error-for="' + fieldName + '"]');
