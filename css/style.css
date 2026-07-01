@@ -272,6 +272,25 @@ a:hover {
   margin: 0;
 }
 
+/* Testimonials */
+.testimonial-card .stars {
+  color: var(--color-accent);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.testimonial-card .quote {
+  font-style: italic;
+  color: var(--color-text);
+}
+
+.testimonial-author {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+
 /* Pricing */
 .price-card {
   text-align: center;

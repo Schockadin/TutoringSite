@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.deine-domain.de/sitemap.xml
+Sitemap: https://dominic-zander.de/sitemap.xml
