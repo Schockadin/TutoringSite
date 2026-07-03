@@ -50,7 +50,7 @@ a:hover {
 
 .container {
   max-width: var(--max-width);
-  margin: 0 auto;
+  margin: 0 50px;
   padding: 0 20px;
 }
 
@@ -136,9 +136,16 @@ a:hover {
 
 /* Hero */
 .hero {
-  padding: 90px 0 70px;
-  background: linear-gradient(135deg, #eef4ff 0%, #f9fbff 100%);
-  text-align: center;
+  padding: 110px 0 70px;
+  background-image: url("../img/herobanner.png");
+  background-size: cover;
+  background-position: center;
+  text-align: left;
+}
+
+.hero-inner {
+  width: 50%;
+  padding-top: 20px;
 }
 
 .hero h1 {
@@ -155,7 +162,7 @@ a:hover {
 .hero-actions {
   display: flex;
   gap: 16px;
-  justify-content: center;
+  justify-content: start;
   flex-wrap: wrap;
 }
 
@@ -189,6 +196,13 @@ a:hover {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+.profile-picture {
+  border-radius: 50%;
+  width: 250px;
+  height: 250px;
+  /* background-image: url("../img/profil-placeholder.png"); */
 }
 
 /* Sections */
