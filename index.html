@@ -2,37 +2,76 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <title>
-      Dominic Zander – Nachhilfe für Mathe, Naturwissenschaften &amp; Latein
+      Nachhilfe Essen – Mathe, Naturwissenschaften &amp; Latein | Dominic Zander
     </title>
     <meta
       name="description"
-      content="Freiberufliche Nachhilfe in Mathematik, Naturwissenschaften und Latein – vor Ort in Essen. Jetzt unverbindlich Kontakt aufnehmen."
+      content="Professionelle Nachhilfe in Essen: Mathematik, Naturwissenschaften, Informatik und Latein für Klasse 5–13. Persönlich vor Ort, 13 Jahre Erfahrung. Jetzt unverbindlich Kontakt aufnehmen."
     />
-    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="Nachhilfe Essen, Mathe Nachhilfe Essen, Latein Nachhilfe, Nachhilfe Mathematik, Abiturvorbereitung Essen, Nachhilfe Naturwissenschaften, Nachhilfelehrer Essen"
+    />
+    <meta name="author" content="Dominic Zander" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="format-detection" content="telephone=yes" />
+
+    <!-- Geo-Targeting -->
+    <meta name="geo.region" content="DE-NW" />
+    <meta name="geo.placename" content="Essen" />
+    <meta name="geo.position" content="51.4556;7.0116" />
+    <meta name="ICBM" content="51.4556, 7.0116" />
+
     <link rel="canonical" href="https://dominic-zander.de/" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+
+    <!-- LCP-Bild vorladen für schnelleren Seitenaufbau -->
+    <link
+      rel="preload"
+      as="image"
+      href="img/herobanner.webp"
+      type="image/webp"
+      fetchpriority="high"
+    />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Dominic Zander Nachhilfe" />
     <meta property="og:locale" content="de_DE" />
     <meta
       property="og:title"
-      content="Dominic Zander – Nachhilfe für Mathe, Naturwissenschaften & Latein"
+      content="Nachhilfe Essen – Mathe, Naturwissenschaften & Latein"
     />
     <meta
       property="og:description"
-      content="Freiberufliche Nachhilfe in Mathematik, Naturwissenschaften und Latein – vor Ort in Essen."
+      content="Professionelle Nachhilfe in Mathematik, Naturwissenschaften und Latein – persönlich vor Ort in Essen. 13 Jahre Erfahrung."
     />
     <meta property="og:url" content="https://dominic-zander.de/" />
+    <meta
+      property="og:image"
+      content="https://dominic-zander.de/img/profil-picture.jpg"
+    />
+    <meta property="og:image:width" content="656" />
+    <meta property="og:image:height" content="779" />
+    <meta property="og:image:alt" content="Dominic Zander, Nachhilfelehrer aus Essen" />
     <meta name="twitter:card" content="summary" />
     <meta
       name="twitter:title"
-      content="Dominic Zander – Nachhilfe für Mathe, Naturwissenschaften & Latein"
+      content="Nachhilfe Essen – Mathe, Naturwissenschaften & Latein"
     />
     <meta
       name="twitter:description"
-      content="Freiberufliche Nachhilfe in Mathematik, Naturwissenschaften und Latein – vor Ort in Essen."
+      content="Professionelle Nachhilfe in Mathematik, Naturwissenschaften und Latein – persönlich vor Ort in Essen."
+    />
+    <meta
+      name="twitter:image"
+      content="https://dominic-zander.de/img/profil-picture.jpg"
     />
 
     <link rel="stylesheet" href="css/style.css" />
@@ -40,28 +79,53 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "EducationalOrganization",
+        "@type": ["EducationalOrganization", "LocalBusiness"],
+        "@id": "https://dominic-zander.de/#organization",
         "name": "Dominic Zander Nachhilfe",
         "url": "https://dominic-zander.de/",
-        "description": "Freiberufliche Nachhilfe in Mathematik, Naturwissenschaften und Latein – vor Ort in Essen.",
-        "areaServed": "Essen",
-        "priceRange": "35€-150€",
+        "image": "https://dominic-zander.de/img/profil-picture.jpg",
+        "logo": "https://dominic-zander.de/favicon.svg",
+        "description": "Professionelle Nachhilfe in Mathematik, Naturwissenschaften, Informatik und Latein für Klasse 5–13 – persönlich vor Ort in Essen und Umgebung.",
+        "areaServed": {
+          "@type": "City",
+          "name": "Essen"
+        },
+        "priceRange": "€€",
+        "email": "kontakt@dominic-zander.de",
+        "telephone": "+49-176-40138531",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Nordsternstr. 6a",
           "postalCode": "45329",
           "addressLocality": "Essen",
+          "addressRegion": "Nordrhein-Westfalen",
           "addressCountry": "DE"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 51.4556,
+          "longitude": 7.0116
         },
         "founder": {
           "@type": "Person",
-          "name": "Dominic Zander"
+          "name": "Dominic Zander",
+          "jobTitle": "Nachhilfelehrer",
+          "alumniOf": "Universität Duisburg-Essen"
         },
+        "knowsAbout": [
+          "Mathematik",
+          "Physik",
+          "Chemie",
+          "Biologie",
+          "Informatik",
+          "Latein"
+        ],
         "contactPoint": {
           "@type": "ContactPoint",
-          "email": "dominic.zander@outlook.de",
-          "telephone": "+49 176 40138531",
-          "contactType": "customer service"
+          "email": "kontakt@dominic-zander.de",
+          "telephone": "+49-176-40138531",
+          "contactType": "customer service",
+          "availableLanguage": "German"
         }
       }
     </script>
@@ -111,12 +175,19 @@
 
       <section id="ueber-mich" class="section">
         <div class="container about-inner">
-          <div class="about-photo" aria-hidden="true">
-            <img
-              src="img/profil-picture.jpg"
-              alt="Dominic Zander"
-              class="profile-picture"
-            />
+          <div class="about-photo">
+            <picture>
+              <source srcset="img/profil-picture.webp" type="image/webp" />
+              <img
+                src="img/profil-picture.jpg"
+                alt="Dominic Zander, Nachhilfelehrer für Mathematik, Naturwissenschaften und Latein in Essen"
+                class="profile-picture"
+                width="250"
+                height="250"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
           </div>
           <div class="about-text">
             <h2>Über mich</h2>
@@ -127,10 +198,10 @@
               Informatik an der Universität Duisburg-Essen sowohl einen Bachelor
               of Education als auch einen Master of Science erworben. Während
               dieser Zeit habe ich angefangen, nebenberuflich Nachhilfe zu
-              geben.Mein Ziel ist es, Schüler:innen individuell zu fördern,
+              geben. Mein Ziel ist es, Schüler:innen individuell zu fördern,
               Verständnis aufzubauen und sie auf Prüfungen vorzubereiten. Ich
               arbeite mit Geduld, Struktur und praxisnahen Beispielen, um den
-              Lernstoff verständlich zu vermitteln. WÄhrend der gesamten Zeit,
+              Lernstoff verständlich zu vermitteln. Während der gesamten Zeit
               habe ich auch immer für renommierte Nachhilfeinstitute gearbeitet,
               wodurch ich viele Erfahrungen sammeln konnte. Ich freue mich
               darauf, auch dir beim Lernen zu helfen!
@@ -144,7 +215,7 @@
                 13 Jahre Erfahrung in der professionellen Nachhilfe
                 (Schülerhilfe, Happy School Essen)
               </li>
-              <li>Klassemstufen: 5–13</li>
+              <li>Klassenstufen: 5–13</li>
             </ul>
           </div>
         </div>
@@ -172,7 +243,7 @@
               <div class="card-icon">🔬</div>
               <h3>Naturwissenschaften / Informatik</h3>
               <p>
-                Physik, Chemie, Biologie und Informatikverständlich erklärt –
+                Physik, Chemie, Biologie und Informatik verständlich erklärt –
                 mit Bezug zur Praxis.
               </p>
               <p class="card-meta">Klasse 5–13</p>
