@@ -20,12 +20,33 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   margin: 0;
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--color-text);
   background: var(--color-bg);
   line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+picture {
+  max-width: 100%;
+  height: auto;
 }
 
 h1,
@@ -118,12 +139,14 @@ a:hover {
   display: none;
   flex-direction: column;
   justify-content: space-between;
+  box-sizing: content-box;
   width: 26px;
   height: 20px;
+  padding: 12px;
+  margin-right: -12px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
 }
 
 .nav-toggle span {
@@ -149,6 +172,24 @@ a:hover {
   background-size: cover;
   background-position: center top;
   text-align: left;
+}
+
+/* Moderne Browser: kleineres WebP-Hintergrundbild ausliefern */
+@supports (background-image: image-set(url("i.webp") type("image/webp"))) {
+  .hero {
+    background-image:
+      linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.94) 0%,
+        rgba(255, 255, 255, 0.85) 45%,
+        rgba(255, 255, 255, 0.35) 70%,
+        rgba(255, 255, 255, 0) 100%
+      ),
+      image-set(
+        url("../img/herobanner.webp") type("image/webp"),
+        url("../img/herobanner.png") type("image/png")
+      );
+  }
 }
 
 .hero-inner {
@@ -244,16 +285,10 @@ a:hover {
 }
 
 .about-photo {
-  flex: 0 0 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: var(--color-bg-alt);
-  border: 2px dashed var(--color-border);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
 }
 
 .about-text {
@@ -494,9 +529,17 @@ textarea.invalid {
 }
 
 /* Responsive */
+
+/* Tablet: dreispaltige Raster auf zwei Spalten reduzieren */
+@media (max-width: 900px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 800px) {
   .hero {
-    padding: 130px 0 60px;
+    padding: 120px 0 56px;
     background-image:
       linear-gradient(
         to bottom,
@@ -506,6 +549,21 @@ textarea.invalid {
       url("../img/herobanner.png");
   }
 
+  @supports (background-image: image-set(url("i.webp") type("image/webp"))) {
+    .hero {
+      background-image:
+        linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.92),
+          rgba(255, 255, 255, 0.92)
+        ),
+        image-set(
+          url("../img/herobanner.webp") type("image/webp"),
+          url("../img/herobanner.png") type("image/png")
+        );
+    }
+  }
+
   .main-nav {
     position: absolute;
     top: 70px;
@@ -513,6 +571,7 @@ textarea.invalid {
     right: 0;
     background: #fff;
     border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow);
     display: none;
   }
 
@@ -522,13 +581,32 @@ textarea.invalid {
 
   .main-nav ul {
     flex-direction: column;
-    align-items: flex-start;
-    padding: 20px;
-    gap: 16px;
+    align-items: stretch;
+    padding: 12px 20px 20px;
+    gap: 4px;
+  }
+
+  .main-nav a {
+    display: block;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .main-nav li:last-child a {
+    border-bottom: none;
+  }
+
+  .nav-cta {
+    display: inline-block;
+    margin-top: 8px;
   }
 
   .nav-toggle {
     display: flex;
+  }
+
+  .section {
+    padding: 48px 0;
   }
 
   .card-grid,
@@ -541,5 +619,64 @@ textarea.invalid {
     grid-template-columns: 1fr;
     display: flex;
     flex-direction: column;
+    gap: 28px;
+  }
+
+  .about-photo {
+    align-self: center;
+  }
+}
+
+/* Smartphone */
+@media (max-width: 560px) {
+  .container {
+    padding: 0 16px;
+  }
+
+  .hero {
+    padding: 104px 0 48px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
+  .hero-sub {
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    gap: 12px;
+  }
+
+  .hero-actions .btn {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+
+  .section {
+    padding: 40px 0;
+  }
+
+  .section h2 {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    padding: 22px 20px;
+  }
+
+  .contact-direct {
+    padding: 22px 20px;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-nav a {
+    margin-left: 0;
+    margin-right: 16px;
   }
 }
