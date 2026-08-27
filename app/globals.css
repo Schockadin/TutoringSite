@@ -10,6 +10,18 @@
   --radius: 12px;
   --max-width: 1100px;
   --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+
+  /* Bisher an mehreren Stellen hartkodiert, jetzt als Token */
+  --color-error: #dc2626;
+  --color-success: #16a34a;
+
+  /* Abstandsskala – im Bestand gab es keine, der Verwaltungsbereich braucht eine */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
 }
 
 * {
@@ -168,7 +180,7 @@ a:hover {
       rgba(255, 255, 255, 0.35) 70%,
       rgba(255, 255, 255, 0) 100%
     ),
-    url("../img/herobanner.png");
+    url("/img/herobanner.png");
   background-size: cover;
   background-position: center top;
   text-align: left;
@@ -186,8 +198,8 @@ a:hover {
         rgba(255, 255, 255, 0) 100%
       ),
       image-set(
-        url("../img/herobanner.webp") type("image/webp"),
-        url("../img/herobanner.png") type("image/png")
+        url("/img/herobanner.webp") type("image/webp"),
+        url("/img/herobanner.png") type("image/png")
       );
   }
 }
@@ -438,11 +450,11 @@ select:focus {
 
 input.invalid,
 textarea.invalid {
-  border-color: #dc2626;
+  border-color: var(--color-error);
 }
 
 .error-msg {
-  color: #dc2626;
+  color: var(--color-error);
   font-size: 0.85rem;
   min-height: 1.2em;
 }
@@ -453,11 +465,11 @@ textarea.invalid {
 }
 
 .form-note.success {
-  color: #16a34a;
+  color: var(--color-success);
 }
 
 .form-note.error {
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .contact-direct {
@@ -546,7 +558,7 @@ textarea.invalid {
         rgba(255, 255, 255, 0.92),
         rgba(255, 255, 255, 0.92)
       ),
-      url("../img/herobanner.png");
+      url("/img/herobanner.png");
   }
 
   @supports (background-image: image-set(url("i.webp") type("image/webp"))) {
@@ -558,8 +570,8 @@ textarea.invalid {
           rgba(255, 255, 255, 0.92)
         ),
         image-set(
-          url("../img/herobanner.webp") type("image/webp"),
-          url("../img/herobanner.png") type("image/png")
+          url("/img/herobanner.webp") type("image/webp"),
+          url("/img/herobanner.png") type("image/png")
         );
     }
   }
