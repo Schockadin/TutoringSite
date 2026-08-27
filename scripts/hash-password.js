@@ -5,6 +5,12 @@
  * Module und brechen bei Wechseln des Basis-Images. scrypt ist speicherhart
  * (RFC 7914), in Node enthalten und kostet null Abhaengigkeiten.
  *
+ * Die Felder sind mit ":" getrennt, nicht mit "$" wie beim ueblichen
+ * PHC-Format. Grund: Next.js expandiert .env-Werte im dotenv-Stil, dabei wuerde
+ * "$32768" als Variablenreferenz gelesen und durch einen Leerstring ersetzt.
+ * Derselbe Fallstrick lauert in jeder Shell, die den Wert nicht in
+ * einfache Anfuehrungszeichen setzt.
+ *
  *   npm run hash-password -- "meinPasswort"
  */
 import { randomBytes, scryptSync } from "node:crypto";
@@ -32,8 +38,8 @@ async function main() {
 
   const value = [
     "scrypt", PARAMS.N, PARAMS.r, PARAMS.p,
-    salt.toString("base64"), hash.toString("base64"),
-  ].join("$");
+    salt.toString("base64url"), hash.toString("base64url"),
+  ].join(":");
 
   console.log("\nIn die Umgebungsvariablen eintragen:\n");
   console.log(`ADMIN_PASSWORD_HASH=${value}\n`);
