@@ -298,7 +298,12 @@ export const invoices = pgTable(
     check("invoices_issue_when_final", sql`${t.status} = 'draft' or ${t.issueDate} is not null`),
     check("invoices_paid_fields", sql`${t.status} <> 'paid' or ${t.paidOn} is not null`),
     check("invoices_total_consistent", sql`${t.totalCents} = ${t.netCents} + ${t.taxCents}`),
-    check("invoices_amounts", sql`${t.netCents} >= 0 and ${t.totalCents} >= 0`),
+    // Stornorechnungen duerfen negativ sein - ihre Positionen sind die
+    // negierten Positionen des Originals. Regulaere Rechnungen nicht.
+    check(
+      "invoices_amounts",
+      sql`${t.cancelsInvoiceId} is not null or (${t.netCents} >= 0 and ${t.totalCents} >= 0)`,
+    ),
   ],
 );
 

@@ -250,3 +250,19 @@ export async function login(password: string, userAgent?: string): Promise<Login
   await settle();
   return { ok: true };
 }
+
+/**
+ * Absicherung fuer Server Actions.
+ *
+ * Server Actions sind eigene Endpunkte und werden NICHT vom Layout geschuetzt.
+ * Ein Layout-Guard verhindert nur, dass die Seite gerendert wird - eine direkt
+ * aufgerufene Action liefe ohne diese Pruefung trotzdem. Deshalb ruft jede
+ * mutierende Action requireSession() als erstes auf.
+ */
+export async function requireSession(): Promise<void> {
+  const { valid } = await getSession();
+  if (!valid) {
+    const { redirect } = await import("next/navigation");
+    redirect("/login");
+  }
+}

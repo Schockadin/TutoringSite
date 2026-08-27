@@ -30,8 +30,9 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Der Verwaltungsbereich gehört in keinen geteilten Cache und in keinen Suchindex.
-        source: "/app/:path*",
+        // Verwaltungsbereich und Druckansicht gehören in keinen geteilten
+        // Cache und in keinen Suchindex.
+        source: "/:path(app|druck)/:rest*",
         headers: [
           { key: "Cache-Control", value: "no-store" },
           { key: "X-Robots-Tag", value: "noindex, nofollow" },

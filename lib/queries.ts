@@ -65,12 +65,14 @@ export async function listLessons(opts: {
   studentId?: number;
   status?: string;
   unbilledOnly?: boolean;
+  lessonId?: number;
   limit?: number;
 }): Promise<LessonRow[]> {
   const conditions = [sql`true`];
   if (opts.from) conditions.push(sql`l.starts_at >= ${berlinDayStart(opts.from)}`);
   if (opts.to) conditions.push(sql`l.starts_at < ${berlinDayAfter(opts.to)}`);
   if (opts.studentId) conditions.push(sql`l.student_id = ${opts.studentId}`);
+  if (opts.lessonId) conditions.push(sql`l.id = ${opts.lessonId}`);
   if (opts.status) conditions.push(sql`l.status = ${opts.status}`);
   if (opts.unbilledOnly) {
     conditions.push(sql`l.billable and l.status in ('held','no_show') and ii.id is null`);
@@ -144,4 +146,10 @@ export async function getDashboard(): Promise<DashboardData> {
   `);
 
   return { upcoming, ...totals! };
+}
+
+/** Eine einzelne Stunde mit denselben Feldern wie die Liste. */
+export async function getLesson(id: number): Promise<LessonRow | null> {
+  const rows = await listLessons({ lessonId: id, limit: 1 });
+  return rows[0] ?? null;
 }

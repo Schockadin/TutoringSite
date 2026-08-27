@@ -1,0 +1,97 @@
+# dominic-zander.de
+
+Website und interner Verwaltungsbereich für die Nachhilfe von Dominic Zander.
+
+Ein Next.js-16-Projekt: die öffentlichen Seiten werden beim Build statisch vorgerendert,
+der Verwaltungsbereich unter `/app` läuft serverseitig gegen eine Postgres-Datenbank.
+
+## Aufbau
+
+```
+app/(marketing)/   Öffentliche Seiten – Startseite, Impressum, Datenschutz
+app/(admin)/app/   Verwaltungsbereich, passwortgeschützt
+app/(print)/druck/ Druckansicht der Rechnung, eigenes Layout ohne Navigation
+lib/db/            Drizzle-Schema und Datenbankverbindung
+lib/actions/       Server Actions je Fachbereich
+lib/queries.ts     Leseabfragen; sämtliche Zeitzonenumrechnung passiert hier in SQL
+drizzle/           Migrationen
+tests/             End-to-End-Prüfungen mit Playwright
+```
+
+## Lokal starten
+
+```bash
+# Postgres bereitstellen
+docker run -d --name nachhilfe-db \
+  -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=nachhilfe -p 5432:5432 postgres:16
+
+cp .env.example .env.local     # DATABASE_URL eintragen
+npm install
+npm run hash-password          # Ergebnis als ADMIN_PASSWORD_HASH in .env.local
+npm run db:migrate
+npm run db:seed                # Tarife aus der Preisliste
+npm run dev
+```
+
+Achtung: Node überschreibt bereits gesetzte Umgebungsvariablen nicht. Wenn in der Shell
+schon ein `DATABASE_URL` steht, gewinnt dieses gegenüber `.env.local`.
+
+## Umgebungsvariablen
+
+| Variable | Zweck |
+|---|---|
+| `DATABASE_URL` | Postgres. In Produktion mit `?sslmode=require` – die Datenbank ist über den öffentlichen Railway-Endpunkt erreichbar, weil die App auf Netlify läuft. |
+| `ADMIN_PASSWORD_HASH` | Erzeugt mit `npm run hash-password`. Format `scrypt:N:r:p:salt:hash`. Die Felder sind mit `:` getrennt, **nicht** mit `$` – dotenv würde `$32768` sonst als Variablenreferenz lesen und den Wert zerstören. |
+| `SESSION_SECRET` | 32 zufällige Bytes, base64. |
+
+## Migrationen
+
+```bash
+npm run db:generate    # Schema geändert -> Migration erzeugen
+npm run db:migrate     # anwenden
+```
+
+Migrationen laufen **bewusst nicht** im Netlify-Build: Preview-Deploys würden sonst gegen die
+Produktionsdatenbank migrieren, und parallele Builds könnten sich überholen. Das Anwenden ist
+ein eigener, bewusster Schritt.
+
+## Tests
+
+```bash
+npm run build && npm start     # Terminal 1
+npm run test:auth              # Terminal 2 – Anmeldung, Sitzung, Abmelden
+node tests/workflow.mjs        #            – Termin -> Stunde -> Rechnung -> Druck -> Storno
+```
+
+Die Tests laufen gegen einen echten Server und eine echte Datenbank. `tests/workflow.mjs`
+erwartet eine leere Datenbank und prüft unter anderem, dass eine 90-Minuten-Stunde 45 € kostet
+und nicht 52,50 € – der Preis kommt aus der Tariftabelle, nicht aus Dauer × Stundensatz.
+
+## Entwurfsentscheidungen, die man kennen sollte
+
+**Termin und Stunde sind dieselbe Datenbankzeile**, unterschieden durch `status`. Zwei
+Tabellen hätten einen Zwei-Wege-Abgleich erzwungen; so ist „als gehalten markieren" ein
+einziges `UPDATE`.
+
+**Rechnungsnummern kommen aus einer Zählertabelle, nicht aus einem `SEQUENCE`.** `nextval()`
+ist absichtlich nicht-transaktional – ein Rollback verbrennt die Nummer dauerhaft und erzeugt
+genau die Lücken, die § 14 UStG vermeiden will.
+
+**Beträge sind Integer in Cent.** Der Postgres-Treiber liefert `numeric` als String zurück,
+auch bei `SUM()`.
+
+**Zeitzonen rechnet ausschließlich Postgres.** Weder Browser noch Node fassen ein `Date` an,
+wenn es um Termine geht. Das eliminiert die Sommerzeit-Fehlerklasse vollständig.
+
+**Autorisierung liegt im Layout, nicht in der Middleware.** Die Middleware prüft nur, ob
+überhaupt ein Cookie da ist. Next.js hatte mit CVE-2025-29927 eine Middleware-Bypass-Lücke;
+Autorisierung gehört in die Datenschicht.
+
+**Innerhalb einer Transaktion nie über den Pool abfragen.** Der Pool hält genau eine
+Verbindung. Wer in einer Transaktion `db` statt `tx` benutzt, wartet auf eine Verbindung, die
+die eigene Transaktion hält – und blockiert damit den gesamten Server.
+
+## Offene Punkte
+
+Siehe [`docs/steuerliche-hinweise.md`](docs/steuerliche-hinweise.md) – insbesondere die Frage,
+ob § 4 Nr. 21 UStG tatsächlich greift, und die auf Rechnungen fehlende Steuernummer.
