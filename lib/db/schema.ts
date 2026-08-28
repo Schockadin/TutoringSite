@@ -201,11 +201,17 @@ export const lessons = pgTable(
     cancelledAt: timestamp("cancelled_at", tstz),
     cancellationReason: text("cancellation_reason"),
 
+    // Herkunft aus einer Terminserie. SET NULL beim Loeschen der Serie: eine
+    // bereits abgerechnete Stunde darf nie mitgeloescht werden, sie verliert
+    // nur ihre Zugehoerigkeit.
+    seriesId: integer("series_id"),
+
     createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
   },
   (t) => [
     index("lessons_starts_idx").on(t.startsAt),
+    index("lessons_series_idx").on(t.seriesId),
     index("lessons_student_starts_idx").on(t.studentId, t.startsAt.desc()),
     index("lessons_tariff_idx").on(t.tariffId),
     check("lessons_duration", sql`${t.durationMinutes} between 1 and 600`),
@@ -382,6 +388,58 @@ export const loginAttempts = pgTable(
   },
   (t) => [index("login_attempts_time_idx").on(t.attemptedAt.desc())],
 );
+
+/* ------------------------------------------------------------ Serientermine */
+
+/**
+ * Eine Terminserie, z. B. "jeden Dienstag 17:00 mit Lena".
+ *
+ * Die einzelnen Termine werden beim Anlegen als echte lessons-Zeilen erzeugt
+ * und nicht aus der Regel heraus errechnet. Das ist keine Bequemlichkeit,
+ * sondern notwendig: eine Stunde wird abgerechnet, haengt an einer
+ * Rechnungsposition und wird nach dem Festschreiben von Triggern gesperrt.
+ * Ein nur virtuell existierendes Vorkommen koennte davon nichts.
+ *
+ * Die Serie bleibt trotzdem erhalten, damit "diesen und alle folgenden"
+ * moeglich ist und man sieht, wo ein Termin herkommt.
+ */
+export const lessonSeries = pgTable(
+  "lesson_series",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+
+    // Ortszeit, nicht UTC: "jeden Dienstag 17:00" bleibt ueber die
+    // Zeitumstellung hinweg 17:00 Ortszeit. Jedes Vorkommen wird einzeln
+    // nach Europe/Berlin umgerechnet.
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    untilDate: date("until_date", { mode: "string" }).notNull(),
+    timeLocal: text("time_local").notNull(),
+    intervalWeeks: integer("interval_weeks").notNull().default(1),
+
+    durationMinutes: integer("duration_minutes").notNull(),
+    subject: text("subject"),
+    location: text("location"),
+    tariffId: integer("tariff_id").references(() => tariffs.id, { onDelete: "set null" }),
+    priceCents: integer("price_cents"),
+    billable: boolean("billable").notNull().default(true),
+
+    endedAt: timestamp("ended_at", tstz),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("lesson_series_student_idx").on(t.studentId),
+    check("lesson_series_interval", sql`${t.intervalWeeks} between 1 and 8`),
+    check("lesson_series_duration", sql`${t.durationMinutes} between 1 and 600`),
+    check("lesson_series_range", sql`${t.untilDate} >= ${t.startDate}`),
+    check("lesson_series_time", sql`${t.timeLocal} ~ '^[0-2][0-9]:[0-5][0-9]$'`),
+  ],
+);
+
+export type LessonSeries = typeof lessonSeries.$inferSelect;
 
 export type Student = typeof students.$inferSelect;
 export type Tariff = typeof tariffs.$inferSelect;

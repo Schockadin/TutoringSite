@@ -21,3 +21,6 @@ backups/
 
 # Betriebssystem
 .DS_Store
+
+# TypeScript-Build-Cache
+*.tsbuildinfo

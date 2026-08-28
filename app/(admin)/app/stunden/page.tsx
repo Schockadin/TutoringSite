@@ -18,7 +18,7 @@ export default async function LessonsPage({
   const unbilled = filter === "offen";
   const lessons = unbilled
     ? await listLessons({ unbilledOnly: true })
-    : await listLessons({ from: `${month}-01`, to: `${month}-31` });
+    : await listLessons({ month });
 
   const total = lessons.reduce((sum, l) => sum + (l.priceCents ?? 0), 0);
 

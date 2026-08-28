@@ -17,9 +17,9 @@ export const metadata: Metadata = { title: "Kalender – Verwaltung" };
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ monat?: string }>;
+  searchParams: Promise<{ monat?: string; serie?: string }>;
 }) {
-  const { monat } = await searchParams;
+  const { monat, serie } = await searchParams;
   const today = await berlinToday();
   const { year, month } = parseMonth(monat, today);
 
@@ -48,6 +48,13 @@ export default async function CalendarPage({
           Termin anlegen
         </Link>
       </div>
+
+      {serie && Number(serie) > 0 && (
+        <p className="notice notice-info">
+          Serie angelegt: {serie} Termine wurden eingetragen. Jeder davon lässt sich einzeln
+          verschieben, absagen oder abrechnen.
+        </p>
+      )}
 
       <div className="toolbar">
         <Link href={`/app/kalender?monat=${prev}`} className="btn btn-secondary btn-sm">
@@ -89,6 +96,11 @@ export default async function CalendarPage({
                 <div key={l.id} className={`calendar-event ${l.status}`}>
                   <Link href={`/app/stunden/${l.id}`}>
                     <strong>{l.timeLocal}</strong> {l.studentName}
+                    {l.seriesId && (
+                      <span className="series-mark" title="Teil einer Serie">
+                        ↻
+                      </span>
+                    )}
                   </Link>
                   {l.status === "planned" && <HoldLessonButton id={l.id} compact />}
                 </div>

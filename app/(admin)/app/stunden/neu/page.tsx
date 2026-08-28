@@ -7,6 +7,11 @@ import { berlinToday } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Termin anlegen – Verwaltung" };
 
+/** Reine UTC-Arithmetik: in UTC ist ein Tag immer exakt 86.400.000 ms. */
+function plusDays(iso: string, days: number): string {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
 export default async function NewLessonPage({
   searchParams,
 }: {
@@ -18,6 +23,8 @@ export default async function NewLessonPage({
     listActiveTariffs(),
     berlinToday(),
   ]);
+
+  const start = /^\d{4}-\d{2}-\d{2}$/.test(datum ?? "") ? datum! : today;
 
   return (
     <>
@@ -39,10 +46,14 @@ export default async function NewLessonPage({
           students={students}
           tariffs={tariffs}
           defaults={{
-            dateLocal: /^\d{4}-\d{2}-\d{2}$/.test(datum ?? "") ? datum : today,
+            dateLocal: start,
             studentId: Number(student) || undefined,
+            // Voreinstellung fuer Serien: ein knappes Halbjahr, das deckt in
+            // aller Regel ein Schulhalbjahr ab.
+            repeatUntil: plusDays(start, 182),
           }}
           submitLabel="Anlegen"
+          allowSeries
         />
       )}
     </>

@@ -63,3 +63,12 @@ export function gridRange(cells: CalendarCell[]): { from: string; to: string } {
 }
 
 export const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+/**
+ * Obergrenze fuer Terminserien. Zwei Jahre reichen fuer jede realistische
+ * Planung; alles darueber ist eher ein Tippfehler im Enddatum.
+ *
+ * Liegt bewusst hier und nicht in den Server Actions: eine "use server"-Datei
+ * darf ausschliesslich async-Funktionen exportieren.
+ */
+export const MAX_SERIES_DAYS = 730;

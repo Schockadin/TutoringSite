@@ -1479,3 +1479,10 @@ textarea.invalid {
   /* Hintergrundfarben sind im Druck standardmaessig aus – deshalb wird
      ueberall mit Linien statt mit Flaechen gearbeitet. */
 }
+
+/* Kennzeichnung von Serienterminen */
+.series-mark {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-size: 0.9em;
+}

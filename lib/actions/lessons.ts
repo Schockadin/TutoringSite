@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { db, invoiceItems, invoices, lessons, students, tariffs } from "@/lib/db";
 import { berlinTimestamp } from "@/lib/queries";
+import { MAX_SERIES_DAYS } from "@/lib/calendar";
+import { createSeries } from "./series";
 import * as v from "@/lib/validate";
 
 export type LessonFormState = { errors?: v.FieldErrors; message?: string; warning?: string };
@@ -155,6 +157,57 @@ export async function createLesson(
       errors: { priceCents: "Für diese Dauer ist kein Tarif hinterlegt – bitte Preis angeben." },
       message: "Preis fehlt.",
     };
+  }
+
+  // Serientermin? Dann Serie anlegen und alle Einzeltermine erzeugen.
+  const repeat = formData.get("repeat") !== null;
+  if (repeat) {
+    const intervalWeeks =
+      v.integer(p.errors, "repeatIntervalWeeks", formData.get("repeatIntervalWeeks"), "den Abstand in Wochen", {
+        min: 1,
+        max: 8,
+        allowEmpty: true,
+        fallback: 1,
+      }) ?? 1;
+    const until = v.dateField(p.errors, "repeatUntil", formData.get("repeatUntil"), "ein Enddatum der Serie");
+
+    if (Object.keys(p.errors).length > 0) {
+      return { errors: p.errors, message: "Bitte überprüfe die markierten Felder." };
+    }
+    if (until < p.date) {
+      return { errors: { repeatUntil: "Das Enddatum muss nach dem ersten Termin liegen." } };
+    }
+    const days = Math.round(
+      (Date.parse(`${until}T00:00:00Z`) - Date.parse(`${p.date}T00:00:00Z`)) / 86_400_000,
+    );
+    if (days > MAX_SERIES_DAYS) {
+      return { errors: { repeatUntil: "Eine Serie kann höchstens zwei Jahre umfassen." } };
+    }
+    if (priceCents === null && p.billable) {
+      return {
+        errors: { priceCents: "Für diese Dauer ist kein Tarif hinterlegt – bitte Preis angeben." },
+        message: "Preis fehlt.",
+      };
+    }
+
+    const { count } = await createSeries({
+      studentId: p.studentId!,
+      startDate: p.date,
+      untilDate: until,
+      timeLocal: p.time,
+      intervalWeeks,
+      durationMinutes: p.durationMinutes,
+      subject: p.subject,
+      location: p.location,
+      tariffId,
+      priceCents,
+      billable: p.billable,
+    });
+
+    revalidatePath("/app/stunden");
+    revalidatePath("/app/kalender");
+    revalidatePath("/app");
+    redirect(`/app/kalender?monat=${p.date.slice(0, 7)}&serie=${count}`);
   }
 
   const overlap = await findOverlap(p.date, p.time, p.durationMinutes);

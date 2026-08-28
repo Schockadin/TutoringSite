@@ -17,7 +17,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "node --env-file-if-exists=.env.local scripts/seed.js",
     "hash-password": "node scripts/hash-password.js",
-    "test:auth": "node tests/auth.mjs"
+    "test:auth": "node tests/auth.mjs",
+    "test:workflow": "node tests/workflow.mjs",
+    "test:serien": "node tests/serien.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

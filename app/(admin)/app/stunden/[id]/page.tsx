@@ -10,6 +10,8 @@ import { listActiveTariffs, listStudents } from "@/lib/actions/students";
 import { db, invoiceItems, invoices } from "@/lib/db";
 import { LESSON_STATUS, date, money } from "@/lib/format";
 import { getLesson } from "@/lib/queries";
+import { SeriesActions } from "@/components/SeriesActions";
+import { getSeries, getSeriesSummary } from "@/lib/actions/series";
 
 export const metadata: Metadata = { title: "Stunde – Verwaltung" };
 
@@ -39,6 +41,10 @@ export default async function LessonDetailPage({
 
   const locked = invoiceLink !== undefined && invoiceLink.status !== "draft";
   const update = updateLesson.bind(null, id);
+
+  // Serienzugehoerigkeit, falls vorhanden
+  const series = lesson.seriesId ? await getSeries(lesson.seriesId) : null;
+  const seriesSummary = series ? await getSeriesSummary(series.id) : null;
 
   return (
     <>
@@ -100,6 +106,30 @@ export default async function LessonDetailPage({
         }}
         submitLabel="Speichern"
       />
+
+      {series && seriesSummary && (
+        <div className="form-section">
+          <h2>Terminserie</h2>
+          <p className="hint">
+            Dieser Termin gehört zu einer Serie:{" "}
+            {series.intervalWeeks === 1
+              ? "wöchentlich"
+              : `alle ${series.intervalWeeks} Wochen`}{" "}
+            um {series.timeLocal} Uhr, {seriesSummary.total} Termine insgesamt,{" "}
+            {seriesSummary.upcoming} davon noch offen.
+            {series.endedAt && " Die Serie ist beendet."}
+            {" "}Änderungen an diesem Termin betreffen nur ihn – die übrigen bleiben unberührt.
+          </p>
+          {!series.endedAt && (
+            <SeriesActions
+              seriesId={series.id}
+              untilDate={series.untilDate}
+              upcoming={seriesSummary.upcoming}
+              billed={seriesSummary.billed}
+            />
+          )}
+        </div>
+      )}
 
       {!locked && (
         <div className="form-section">

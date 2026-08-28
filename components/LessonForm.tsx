@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { LessonFormState } from "@/lib/actions/lessons";
 import type { Student, Tariff } from "@/lib/db/schema";
@@ -31,6 +31,7 @@ export type LessonDefaults = {
   priceCents?: number | null;
   tariffId?: number | null;
   locked?: boolean;
+  repeatUntil?: string;
 };
 
 export function LessonForm({
@@ -39,14 +40,18 @@ export function LessonForm({
   tariffs,
   defaults,
   submitLabel,
+  allowSeries = false,
 }: {
   action: (prev: LessonFormState, formData: FormData) => Promise<LessonFormState>;
   students: Student[];
   tariffs: Tariff[];
   defaults: LessonDefaults;
   submitLabel: string;
+  /** Serien lassen sich nur beim Anlegen aufsetzen, nicht beim Bearbeiten. */
+  allowSeries?: boolean;
 }) {
   const [state, formAction] = useActionState<LessonFormState, FormData>(action, {});
+  const [repeat, setRepeat] = useState(false);
   const e = state.errors;
   const bad = (f: string) => (e?.[f] ? "invalid" : undefined);
 
@@ -222,8 +227,62 @@ export function LessonForm({
         </div>
       </div>
 
+      {allowSeries && (
+        <div className="form-section">
+          <h2>Wiederkehrender Termin</h2>
+          <p className="hint">
+            Legt die gesamte Serie als einzelne Termine an. Jeder davon lässt sich später
+            unabhängig verschieben, absagen oder abrechnen – eine einzelne Absage betrifft
+            also nie die übrigen.
+          </p>
+
+          <div className="form-row">
+            <label style={{ fontWeight: 400, display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                name="repeat"
+                checked={repeat}
+                onChange={(ev) => setRepeat(ev.target.checked)}
+                style={{ width: "auto" }}
+              />
+              Diesen Termin regelmäßig wiederholen
+            </label>
+            <span className="error-msg"></span>
+          </div>
+
+          {repeat && (
+            <div className="form-grid">
+              <div className="form-row">
+                <label htmlFor="repeatIntervalWeeks">Abstand</label>
+                <select id="repeatIntervalWeeks" name="repeatIntervalWeeks" defaultValue="1">
+                  <option value="1">jede Woche</option>
+                  <option value="2">alle zwei Wochen</option>
+                  <option value="3">alle drei Wochen</option>
+                  <option value="4">alle vier Wochen</option>
+                </select>
+                <span className="error-msg">{e?.repeatIntervalWeeks}</span>
+              </div>
+              <div className="form-row">
+                <label htmlFor="repeatUntil">Letzter Termin am *</label>
+                <input
+                  id="repeatUntil"
+                  name="repeatUntil"
+                  type="date"
+                  className={bad("repeatUntil")}
+                  defaultValue={defaults.repeatUntil}
+                  required={repeat}
+                />
+                <span className="error-msg">
+                  {e?.repeatUntil ?? "Höchstens zwei Jahre im Voraus"}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="form-actions">
-        <Save label={submitLabel} />
+        <Save label={repeat ? "Serie anlegen" : submitLabel} />
         <Link href="/app/kalender" className="btn btn-secondary">
           Abbrechen
         </Link>

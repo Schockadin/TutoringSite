@@ -59,7 +59,8 @@ ein eigener, bewusster Schritt.
 ```bash
 npm run build && npm start     # Terminal 1
 npm run test:auth              # Terminal 2 – Anmeldung, Sitzung, Abmelden
-node tests/workflow.mjs        #            – Termin -> Stunde -> Rechnung -> Druck -> Storno
+npm run test:workflow          #            – Termin -> Stunde -> Rechnung -> Druck -> Storno
+npm run test:serien            #            – Serientermine über die Zeitumstellung hinweg
 ```
 
 Die Tests laufen gegen einen echten Server und eine echte Datenbank. `tests/workflow.mjs`
@@ -80,7 +81,17 @@ genau die Lücken, die § 14 UStG vermeiden will.
 auch bei `SUM()`.
 
 **Zeitzonen rechnet ausschließlich Postgres.** Weder Browser noch Node fassen ein `Date` an,
-wenn es um Termine geht. Das eliminiert die Sommerzeit-Fehlerklasse vollständig.
+wenn es um Termine geht. Das eliminiert die Sommerzeit-Fehlerklasse vollständig. Aus demselben
+Grund werden die Termine einer Serie einzeln als lokale Wanduhrzeit erzeugt und nicht durch
+Addition von 7×24 Stunden – sonst läge „jeden Dienstag 17:00" nach der Zeitumstellung auf 16:00.
+
+**Serientermine werden materialisiert, nicht errechnet.** Jeder Termin ist eine echte Zeile.
+Das ist notwendig, nicht bequem: eine Stunde wird abgerechnet, hängt an einer Rechnungsposition
+und wird nach dem Festschreiben von Triggern gesperrt – ein virtuelles Vorkommen könnte davon
+nichts. Die Serie bleibt daneben erhalten, damit „verlängern" und „beenden" möglich sind.
+
+**Monatsbereiche rechnet Postgres aus.** Ein zusammengesetztes `YYYY-MM-31` ist in fünf von
+zwölf Monaten ein ungültiges Datum.
 
 **Autorisierung liegt im Layout, nicht in der Middleware.** Die Middleware prüft nur, ob
 überhaupt ein Cookie da ist. Next.js hatte mit CVE-2025-29927 eine Middleware-Bypass-Lücke;

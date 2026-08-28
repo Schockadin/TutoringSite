@@ -50,6 +50,7 @@ export type LessonRow = {
   location: string | null;
   priceCents: number | null;
   billable: boolean;
+  seriesId: number | null;
   invoiceId: number | null;
   invoiceStatus: string | null;
 };
@@ -66,11 +67,23 @@ export async function listLessons(opts: {
   status?: string;
   unbilledOnly?: boolean;
   lessonId?: number;
+  /** Ganzer Monat als "YYYY-MM". Sicherer als ein selbst gebautes Enddatum. */
+  month?: string;
   limit?: number;
 }): Promise<LessonRow[]> {
   const conditions = [sql`true`];
   if (opts.from) conditions.push(sql`l.starts_at >= ${berlinDayStart(opts.from)}`);
   if (opts.to) conditions.push(sql`l.starts_at < ${berlinDayAfter(opts.to)}`);
+  if (opts.month) {
+    // Postgres rechnet das Monatsende selbst aus. Ein zusammengesetztes
+    // "YYYY-MM-31" waere in fünf von zwölf Monaten ein ungültiges Datum.
+    conditions.push(
+      sql`l.starts_at >= ((${opts.month} || '-01')::date::timestamp at time zone ${BERLIN})`,
+    );
+    conditions.push(
+      sql`l.starts_at < (((${opts.month} || '-01')::date + interval '1 month')::timestamp at time zone ${BERLIN})`,
+    );
+  }
   if (opts.studentId) conditions.push(sql`l.student_id = ${opts.studentId}`);
   if (opts.lessonId) conditions.push(sql`l.id = ${opts.lessonId}`);
   if (opts.status) conditions.push(sql`l.status = ${opts.status}`);
@@ -92,6 +105,7 @@ export async function listLessons(opts: {
       l.location                                                    as "location",
       l.price_cents                                                 as "priceCents",
       l.billable                                                    as "billable",
+      l.series_id                                                   as "seriesId",
       inv.id                                                        as "invoiceId",
       inv.status                                                    as "invoiceStatus"
     from lessons l
