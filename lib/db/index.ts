@@ -28,7 +28,23 @@ function createClient() {
     );
   }
 
+  // TLS wird fuer jede Netzverbindung erzwungen und haengt bewusst NICHT davon
+  // ab, ob jemand "?sslmode=require" an die URL gehaengt hat. Die Datenbank ist
+  // ueber den oeffentlichen Railway-Endpunkt erreichbar, und durch die Leitung
+  // gehen Namen und Anschriften Minderjaehriger.
+  //
+  // Die Bedingung haengt am Host und nicht an NODE_ENV, weil "next start" auch
+  // lokal NODE_ENV=production setzt und der Entwicklungs-Postgres in der Regel
+  // kein TLS spricht.
+  //
+  // "require" verschluesselt, prueft aber das Zertifikat nicht - das schuetzt
+  // vor Mitlesen, nicht vor einem aktiven Man-in-the-Middle. Echte
+  // Zertifikatspruefung braeuchte Railways CA-Zertifikat.
+  const host = new URL(url).hostname;
+  const isLocal = host === "localhost" || host === "127.0.0.1" || host === "::1";
+
   return postgres(url, {
+    ssl: isLocal ? false : "require",
     max: 1,
     idle_timeout: 20,
     connect_timeout: 10,
