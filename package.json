@@ -19,7 +19,8 @@
     "hash-password": "node scripts/hash-password.js",
     "test:auth": "node tests/auth.mjs",
     "test:workflow": "node tests/workflow.mjs",
-    "test:serien": "node tests/serien.mjs"
+    "test:serien": "node tests/serien.mjs",
+    "test:guthaben": "node tests/guthaben.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

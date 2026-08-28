@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { db, invoiceItems, invoices, settings, students } from "@/lib/db";
 import { billingName } from "@/lib/format";
+import { OPEN_FOR_BILLING } from "@/lib/queries";
 import * as v from "@/lib/validate";
 
 export type InvoiceFormState = { errors?: v.FieldErrors; message?: string; missing?: string[] };
@@ -79,13 +80,42 @@ export async function createDraft(
         coalesce(l.price_cents, 0),
         coalesce(l.price_cents, 0)
       from lessons l
-      left join invoice_items ii on ii.lesson_id = l.id
       where l.student_id = ${studentId}
-        and l.billable
-        and l.status in ('held','no_show')
-        and ii.id is null
+        and ${OPEN_FOR_BILLING}
         and l.starts_at >= (${periodStart}::date::timestamp at time zone 'Europe/Berlin')
         and l.starts_at <  ((${periodEnd}::date + interval '1 day')::timestamp at time zone 'Europe/Berlin')
+    `);
+
+    // Guthaben, die im Zeitraum gekauft, aber noch nicht bezahlt und noch auf
+    // keiner Rechnung sind. Berechnet wird das Paket - die daraus verrechneten
+    // Stunden nicht mehr, die sind ja damit bezahlt.
+    await tx.execute(sql`
+      insert into invoice_items
+        (invoice_id, package_id, position, description, service_date, quantity, unit,
+         unit_price_cents, amount_cents)
+      select
+        ${invoice!.id},
+        p.id,
+        (select coalesce(max(position),0) from invoice_items where invoice_id = ${invoice!.id})
+          + row_number() over (order by p.purchased_on, p.id),
+        p.label
+          || case when p.kind = 'units'
+                  then ' (' || p.total_units || ' Einheiten à ' || p.unit_duration_minutes || ' Minuten)'
+                  else '' end,
+        p.purchased_on,
+        1,
+        'Paket',
+        p.price_cents,
+        p.price_cents
+      from credit_packages p
+      where p.student_id = ${studentId}
+        and p.cancelled_at is null
+        and p.paid_on is null
+        and not exists (select 1 from invoice_items ii where ii.package_id = p.id)
+        -- Bewusst ohne untere Grenze: ein Guthaben, das vor dem Zeitraum
+        -- gekauft und noch nicht berechnet wurde, würde sonst dauerhaft
+        -- durchs Raster fallen. Es landet auf der nächsten Rechnung.
+        and p.purchased_on <= ${periodEnd}::date
     `);
 
     await recalcTotals(tx, invoice!.id, taxRateBp);

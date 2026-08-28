@@ -123,7 +123,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <div className="form-section">
             <h2>Weitere Position</h2>
             <p className="hint">
-              Für Fahrtkosten außerhalb von Essen, Material oder einen Rabatt.
+              Für Fahrtkosten außerhalb von Essen, Material oder einen Rabatt. Stunden und
+            gekaufte Guthaben aus dem Zeitraum sind bereits enthalten.
             </p>
             <AddItemForm invoiceId={id} />
           </div>

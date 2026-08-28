@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, invoices, lessons, students } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
+import { OPEN_FOR_BILLING } from "@/lib/queries";
 import * as v from "@/lib/validate";
 
 export type StudentFormState = { errors?: v.FieldErrors; message?: string };
@@ -146,13 +147,9 @@ export async function getStudentSummary(id: number) {
   }>(sql`
     select
       (select count(*)::int from lessons l
-        left join invoice_items ii on ii.lesson_id = l.id
-        where l.student_id = ${id} and l.billable
-          and l.status in ('held','no_show') and ii.id is null) as "unbilledCount",
+        where l.student_id = ${id} and ${OPEN_FOR_BILLING}) as "unbilledCount",
       (select coalesce(sum(l.price_cents),0)::int from lessons l
-        left join invoice_items ii on ii.lesson_id = l.id
-        where l.student_id = ${id} and l.billable
-          and l.status in ('held','no_show') and ii.id is null) as "unbilledCents",
+        where l.student_id = ${id} and ${OPEN_FOR_BILLING}) as "unbilledCents",
       (select coalesce(sum(total_cents),0)::int from invoices
         where student_id = ${id} and status = 'open') as "openInvoiceCents",
       (select count(*)::int from lessons where student_id = ${id}) as "lessonCount"

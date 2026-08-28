@@ -61,6 +61,7 @@ npm run build && npm start     # Terminal 1
 npm run test:auth              # Terminal 2 – Anmeldung, Sitzung, Abmelden
 npm run test:workflow          #            – Termin -> Stunde -> Rechnung -> Druck -> Storno
 npm run test:serien            #            – Serientermine über die Zeitumstellung hinweg
+npm run test:guthaben          #            – vorausbezahlte Stunden, keine Doppelberechnung
 ```
 
 Die Tests laufen gegen einen echten Server und eine echte Datenbank. `tests/workflow.mjs`
@@ -92,6 +93,16 @@ nichts. Die Serie bleibt daneben erhalten, damit „verlängern" und „beenden"
 
 **Monatsbereiche rechnet Postgres aus.** Ein zusammengesetztes `YYYY-MM-31` ist in fünf von
 zwölf Monaten ein ungültiges Datum.
+
+**Vorausbezahlte Stunden gibt es in zwei Formen**: ein Stundenkontingent (die 5er-Karte:
+N Einheiten für eine bestimmte Stundenlänge) und ein reines Geldguthaben, das pro Stunde
+abgebucht wird. Guthaben und Preis sind getrennte Felder, damit sich auch „200 € Guthaben
+für 180 €" abbilden lässt.
+
+**„Offen zur Abrechnung" hat genau eine Definition**, `OPEN_FOR_BILLING` in `lib/queries.ts`.
+Sie stand vorher an fünf Stellen verteilt; mit dem Guthaben kam eine sechste Bedingung dazu.
+Hätte man dabei eine Stelle übersehen, wäre eine bereits vorausbezahlte Stunde ein zweites
+Mal berechnet worden.
 
 **Autorisierung liegt im Layout, nicht in der Middleware.** Die Middleware prüft nur, ob
 überhaupt ein Cookie da ist. Next.js hatte mit CVE-2025-29927 eine Middleware-Bypass-Lücke;

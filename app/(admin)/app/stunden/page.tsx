@@ -79,7 +79,7 @@ export default async function LessonsPage({
                 <th>Thema</th>
                 <th>Status</th>
                 <th className="num">Preis</th>
-                <th className="num">Rechnung</th>
+                <th className="num">Abrechnung</th>
               </tr>
             </thead>
             <tbody>
@@ -106,7 +106,11 @@ export default async function LessonsPage({
                   </td>
                   <td className="num">{money(l.priceCents)}</td>
                   <td className="num">
-                    {l.invoiceId ? (
+                    {l.creditPackageId ? (
+                      <span className="badge badge-paid" title={l.creditPackageLabel ?? undefined}>
+                        Guthaben
+                      </span>
+                    ) : l.invoiceId ? (
                       <Link href={`/app/rechnungen/${l.invoiceId}`}>Rechnung</Link>
                     ) : l.status === "planned" ? (
                       <HoldLessonButton id={l.id} compact />

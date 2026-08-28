@@ -10,6 +10,7 @@ import { listActiveTariffs, listStudents } from "@/lib/actions/students";
 import { db, invoiceItems, invoices } from "@/lib/db";
 import { LESSON_STATUS, date, money } from "@/lib/format";
 import { getLesson } from "@/lib/queries";
+import { CreditRedemption } from "@/components/CreditRedemption";
 import { SeriesActions } from "@/components/SeriesActions";
 import { getSeries, getSeriesSummary } from "@/lib/actions/series";
 
@@ -106,6 +107,18 @@ export default async function LessonDetailPage({
         }}
         submitLabel="Speichern"
       />
+
+      {(lesson.status === "held" || lesson.status === "no_show" || lesson.creditPackageId) && (
+        <div className="form-section">
+          <h2>Guthaben</h2>
+          <CreditRedemption
+            lessonId={id}
+            studentId={lesson.studentId}
+            packageLabel={lesson.creditPackageLabel}
+            canRedeem={!locked && invoiceLink === undefined}
+          />
+        </div>
+      )}
 
       {series && seriesSummary && (
         <div className="form-section">

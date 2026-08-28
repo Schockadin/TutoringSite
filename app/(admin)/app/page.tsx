@@ -38,6 +38,20 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {(data.creditUnitsLeft > 0 || data.creditCentsLeft > 0) && (
+        <p className="notice notice-info">
+          Vorausbezahlt und noch offen:{" "}
+          {data.creditUnitsLeft > 0 && (
+            <strong>
+              {data.creditUnitsLeft} {data.creditUnitsLeft === 1 ? "Einheit" : "Einheiten"}
+            </strong>
+          )}
+          {data.creditUnitsLeft > 0 && data.creditCentsLeft > 0 && " und "}
+          {data.creditCentsLeft > 0 && <strong>{money(data.creditCentsLeft)} Guthaben</strong>}
+          . Diese Stunden sind bereits bezahlt und erscheinen nicht in der offenen Abrechnung.
+        </p>
+      )}
+
       <div className="page-head">
         <h2 style={{ fontSize: "1.2rem", textAlign: "left", margin: 0 }}>Nächste Termine</h2>
         <Link href="/app/kalender" className="btn btn-secondary btn-sm">

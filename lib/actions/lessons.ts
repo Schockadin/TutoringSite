@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth";
 import { db, invoiceItems, invoices, lessons, students, tariffs } from "@/lib/db";
 import { berlinTimestamp } from "@/lib/queries";
 import { MAX_SERIES_DAYS } from "@/lib/calendar";
+import { redeemLesson } from "./credits";
 import { createSeries } from "./series";
 import * as v from "@/lib/validate";
 
@@ -286,8 +287,16 @@ export async function updateLesson(
   return { message: "Gespeichert." };
 }
 
-/** Der Ein-Klick-Schritt Termin -> gehaltene Stunde. */
-export async function holdLesson(id: number): Promise<{ error?: string }> {
+/**
+ * Der Ein-Klick-Schritt Termin -> gehaltene Stunde.
+ *
+ * Gibt es ein passendes Guthaben, wird die Stunde gleich dagegen verrechnet.
+ * Das ist der Punkt, an dem vorausbezahlte Stunden tatsaechlich wirken: die
+ * Stunde faellt damit aus der offenen Abrechnung heraus, weil sie schon
+ * bezahlt ist. Die Verrechnung wird zurueckgemeldet und laesst sich am Termin
+ * jederzeit wieder aufheben.
+ */
+export async function holdLesson(id: number): Promise<{ error?: string; redeemed?: boolean }> {
   await requireSession();
 
   const [lesson] = await db.select().from(lessons).where(eq(lessons.id, id)).limit(1);
@@ -319,10 +328,13 @@ export async function holdLesson(id: number): Promise<{ error?: string }> {
     return { error: dbMessage(err, "Die Stunde konnte nicht als gehalten markiert werden.") };
   }
 
+  // Automatisch gegen ein Guthaben verrechnen, falls eines passt.
+  const redemption = await redeemLesson(id);
+
   revalidatePath("/app/kalender");
   revalidatePath("/app/stunden");
   revalidatePath("/app");
-  return {};
+  return { redeemed: redemption.packageId !== undefined };
 }
 
 export async function cancelLesson(

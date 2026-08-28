@@ -323,6 +323,9 @@ export const invoiceItems = pgTable(
     // RESTRICT: eine Stunde auf einer Rechnung – auch einem Entwurf – darf nicht
     // geloescht werden. Zum Entfernen wird erst die Position geloescht.
     lessonId: integer("lesson_id").references(() => lessons.id, { onDelete: "restrict" }),
+    // Ein Guthabenpaket wird selbst berechnet - die daraus verrechneten
+    // Stunden dann nicht mehr.
+    packageId: integer("package_id"),
 
     position: integer("position").notNull(),
     description: text("description").notNull(),
@@ -343,6 +346,9 @@ export const invoiceItems = pgTable(
     uniqueIndex("invoice_items_lesson_key")
       .on(t.lessonId)
       .where(sql`${t.lessonId} is not null`),
+    uniqueIndex("invoice_items_package_key")
+      .on(t.packageId)
+      .where(sql`${t.packageId} is not null`),
     check("invoice_items_quantity", sql`${t.quantity} > 0`),
     check("invoice_items_description", sql`length(btrim(${t.description})) > 0`),
     check("invoice_items_amount", sql`${t.amountCents} = ${t.quantity} * ${t.unitPriceCents}`),
@@ -440,6 +446,107 @@ export const lessonSeries = pgTable(
 );
 
 export type LessonSeries = typeof lessonSeries.$inferSelect;
+
+/* ---------------------------------------------------------------- Guthaben */
+
+/**
+ * Vorausbezahlte Stunden.
+ *
+ * Zwei Arten, weil beide real vorkommen:
+ *
+ *  - kind='units'  Ein Kontingent an Einheiten fuer eine bestimmte Stundenlaenge.
+ *                  Das ist die 5er-Karte und der Ferienkurs aus der Preisliste:
+ *                  "5 Einheiten a 60 Minuten fuer 150 Euro".
+ *
+ *  - kind='amount' Ein reines Geldguthaben. Fuer den Fall "die Eltern zahlen
+ *                  300 Euro an, das wird verrechnet" - unabhaengig davon, wie
+ *                  lang die einzelnen Stunden werden.
+ *
+ * creditCents und priceCents sind bewusst getrennt: so laesst sich auch
+ * "200 Euro Guthaben fuer 180 Euro" abbilden, ohne dass der Rabatt verloren geht.
+ */
+export const creditPackages = pgTable(
+  "credit_packages",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+
+    kind: text("kind").notNull(),
+    label: text("label").notNull(),
+
+    // Nur bei kind='units'
+    totalUnits: integer("total_units"),
+    unitDurationMinutes: integer("unit_duration_minutes"),
+
+    // Nur bei kind='amount': das verfuegbare Guthaben
+    creditCents: integer("credit_cents"),
+
+    // Was dafuer berechnet wird - bei beiden Arten
+    priceCents: integer("price_cents").notNull(),
+
+    purchasedOn: date("purchased_on", { mode: "string" }).notNull(),
+    paidOn: date("paid_on", { mode: "string" }),
+    // Optional: viele Guthaben verfallen nie, Ferienkurse schon.
+    expiresOn: date("expires_on", { mode: "string" }),
+
+    notes: text("notes"),
+    cancelledAt: timestamp("cancelled_at", tstz),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("credit_packages_student_idx").on(t.studentId),
+    check("credit_packages_kind", sql`${t.kind} in ('units','amount')`),
+    check("credit_packages_label", sql`length(btrim(${t.label})) between 1 and 120`),
+    check("credit_packages_price", sql`${t.priceCents} >= 0`),
+    // Je nach Art muessen genau die passenden Felder gesetzt sein.
+    check(
+      "credit_packages_units_fields",
+      sql`${t.kind} <> 'units' or (${t.totalUnits} > 0 and ${t.unitDurationMinutes} between 1 and 600 and ${t.creditCents} is null)`,
+    ),
+    check(
+      "credit_packages_amount_fields",
+      sql`${t.kind} <> 'amount' or (${t.creditCents} > 0 and ${t.totalUnits} is null and ${t.unitDurationMinutes} is null)`,
+    ),
+    check("credit_packages_expiry", sql`${t.expiresOn} is null or ${t.expiresOn} >= ${t.purchasedOn}`),
+  ],
+);
+
+/**
+ * Eine Stunde, die gegen ein Guthaben verrechnet wurde.
+ *
+ * Der eindeutige Index auf lesson_id ist die eigentliche Sicherung: eine Stunde
+ * kann nie zweimal von einem Guthaben gedeckt werden. Zusammen mit dem
+ * Ausschluss verrechneter Stunden aus der Rechnungsstellung verhindert das,
+ * dass dieselbe Leistung zweimal kassiert wird.
+ */
+export const creditRedemptions = pgTable(
+  "credit_redemptions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    packageId: integer("package_id")
+      .notNull()
+      .references(() => creditPackages.id, { onDelete: "restrict" }),
+    lessonId: integer("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+
+    unitsUsed: integer("units_used").notNull().default(0),
+    centsUsed: integer("cents_used").notNull().default(0),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("credit_redemptions_lesson_key").on(t.lessonId),
+    index("credit_redemptions_package_idx").on(t.packageId),
+    check("credit_redemptions_amounts", sql`${t.unitsUsed} >= 0 and ${t.centsUsed} >= 0`),
+    check("credit_redemptions_nonzero", sql`${t.unitsUsed} > 0 or ${t.centsUsed} > 0`),
+  ],
+);
+
+export type CreditPackage = typeof creditPackages.$inferSelect;
 
 export type Student = typeof students.$inferSelect;
 export type Tariff = typeof tariffs.$inferSelect;

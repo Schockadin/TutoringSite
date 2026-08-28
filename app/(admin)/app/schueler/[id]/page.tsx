@@ -9,8 +9,10 @@ import {
   listActiveTariffs,
   updateStudent,
 } from "@/lib/actions/students";
+import { CreditPackages } from "@/components/CreditPackages";
+import { listPackagesForStudent } from "@/lib/actions/credits";
 import { LESSON_STATUS, billingName, date, duration, money, studentName } from "@/lib/format";
-import { listLessons } from "@/lib/queries";
+import { berlinToday, listLessons } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Schüler:in – Verwaltung" };
 
@@ -26,10 +28,12 @@ export default async function StudentDetailPage({
   const student = await getStudent(id);
   if (!student) notFound();
 
-  const [tariffs, summary, lessons] = await Promise.all([
+  const [tariffs, summary, lessons, packages, today] = await Promise.all([
     listActiveTariffs(),
     getStudentSummary(id),
     listLessons({ studentId: id, limit: 25 }),
+    listPackagesForStudent(id),
+    berlinToday(),
   ]);
 
   const update = updateStudent.bind(null, id);
@@ -82,6 +86,8 @@ export default async function StudentDetailPage({
         </p>
       )}
 
+      <CreditPackages studentId={id} packages={packages} today={today} />
+
       <StudentForm action={update} student={student} tariffs={tariffs} submitLabel="Speichern" />
 
       <div className="form-section">
@@ -99,7 +105,7 @@ export default async function StudentDetailPage({
                   <th>Thema</th>
                   <th>Status</th>
                   <th className="num">Preis</th>
-                  <th>Rechnung</th>
+                  <th>Abrechnung</th>
                 </tr>
               </thead>
               <tbody>
@@ -116,7 +122,9 @@ export default async function StudentDetailPage({
                     </td>
                     <td className="num">{money(l.priceCents)}</td>
                     <td>
-                      {l.invoiceId ? (
+                      {l.creditPackageId ? (
+                        <span className="badge badge-paid">aus Guthaben</span>
+                      ) : l.invoiceId ? (
                         <Link href={`/app/rechnungen/${l.invoiceId}`}>Rechnung</Link>
                       ) : (
                         "–"

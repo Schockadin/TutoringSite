@@ -37,6 +37,23 @@ export async function berlinToday(): Promise<string> {
   return row!.today;
 }
 
+/**
+ * Wann eine Stunde noch abzurechnen ist - die EINZIGE Definition dieser Regel.
+ *
+ * Sie stand vorher an fuenf Stellen verteilt. Mit dem Guthaben kam eine sechste
+ * Bedingung hinzu, und genau dann wird verteiltes Wissen gefaehrlich: haette
+ * man eine Stelle vergessen, waere eine bereits vorausbezahlte Stunde ein
+ * zweites Mal in Rechnung gestellt worden.
+ *
+ * Erwartet die lessons-Zeile unter dem Alias `l`.
+ */
+export const OPEN_FOR_BILLING = sql`
+  l.billable
+  and l.status in ('held','no_show')
+  and not exists (select 1 from invoice_items ii where ii.lesson_id = l.id)
+  and not exists (select 1 from credit_redemptions cr where cr.lesson_id = l.id)
+`;
+
 export type LessonRow = {
   id: number;
   studentId: number;
@@ -53,6 +70,9 @@ export type LessonRow = {
   seriesId: number | null;
   invoiceId: number | null;
   invoiceStatus: string | null;
+  /** Gesetzt, wenn die Stunde gegen ein Guthaben verrechnet wurde. */
+  creditPackageId: number | null;
+  creditPackageLabel: string | null;
 };
 
 /**
@@ -88,7 +108,7 @@ export async function listLessons(opts: {
   if (opts.lessonId) conditions.push(sql`l.id = ${opts.lessonId}`);
   if (opts.status) conditions.push(sql`l.status = ${opts.status}`);
   if (opts.unbilledOnly) {
-    conditions.push(sql`l.billable and l.status in ('held','no_show') and ii.id is null`);
+    conditions.push(OPEN_FOR_BILLING);
   }
 
   const rows = await db.execute<LessonRow>(sql`
@@ -107,11 +127,15 @@ export async function listLessons(opts: {
       l.billable                                                    as "billable",
       l.series_id                                                   as "seriesId",
       inv.id                                                        as "invoiceId",
-      inv.status                                                    as "invoiceStatus"
+      inv.status                                                    as "invoiceStatus",
+      cp.id                                                         as "creditPackageId",
+      cp.label                                                      as "creditPackageLabel"
     from lessons l
     join students s on s.id = l.student_id
     left join invoice_items ii on ii.lesson_id = l.id
     left join invoices inv on inv.id = ii.invoice_id
+    left join credit_redemptions cr on cr.lesson_id = l.id
+    left join credit_packages cp on cp.id = cr.package_id
     where ${sql.join(conditions, sql` and `)}
     order by l.starts_at
     ${opts.limit ? sql`limit ${opts.limit}` : sql``}
@@ -126,6 +150,8 @@ export type DashboardData = {
   openInvoiceCents: number;
   monthRevenueCents: number;
   studentCount: number;
+  creditUnitsLeft: number;
+  creditCentsLeft: number;
 };
 
 export async function getDashboard(): Promise<DashboardData> {
@@ -139,15 +165,13 @@ export async function getDashboard(): Promise<DashboardData> {
     openInvoiceCents: number;
     monthRevenueCents: number;
     studentCount: number;
+    creditUnitsLeft: number;
+    creditCentsLeft: number;
   }>(sql`
     select
-      (select count(*)::int from lessons l
-        left join invoice_items ii on ii.lesson_id = l.id
-        where l.billable and l.status in ('held','no_show') and ii.id is null)
+      (select count(*)::int from lessons l where ${OPEN_FOR_BILLING})
         as "unbilledCount",
-      (select coalesce(sum(l.price_cents),0)::int from lessons l
-        left join invoice_items ii on ii.lesson_id = l.id
-        where l.billable and l.status in ('held','no_show') and ii.id is null)
+      (select coalesce(sum(l.price_cents),0)::int from lessons l where ${OPEN_FOR_BILLING})
         as "unbilledCents",
       (select coalesce(sum(total_cents),0)::int from invoices where status = 'open')
         as "openInvoiceCents",
@@ -156,7 +180,22 @@ export async function getDashboard(): Promise<DashboardData> {
           and date_trunc('month', issue_date) = date_trunc('month', ${today}::date))
         as "monthRevenueCents",
       (select count(*)::int from students where archived_at is null)
-        as "studentCount"
+        as "studentCount",
+      -- Noch nicht verbrauchte Guthaben, ohne stornierte und abgelaufene
+      (select coalesce(sum(p.total_units - coalesce(r.units,0)),0)::int
+         from credit_packages p
+         left join lateral (select sum(units_used) as units from credit_redemptions
+                            where package_id = p.id) r on true
+        where p.kind = 'units' and p.cancelled_at is null
+          and (p.expires_on is null or p.expires_on >= (now() at time zone 'Europe/Berlin')::date))
+        as "creditUnitsLeft",
+      (select coalesce(sum(p.credit_cents - coalesce(r.cents,0)),0)::int
+         from credit_packages p
+         left join lateral (select sum(cents_used) as cents from credit_redemptions
+                            where package_id = p.id) r on true
+        where p.kind = 'amount' and p.cancelled_at is null
+          and (p.expires_on is null or p.expires_on >= (now() at time zone 'Europe/Berlin')::date))
+        as "creditCentsLeft"
   `);
 
   return { upcoming, ...totals! };
