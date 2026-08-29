@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LESSON_STATUS, date, duration, money, weekday } from "@/lib/format";
+import { countUnread } from "@/lib/actions/contact";
 import { getDashboard } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Übersicht – Verwaltung" };
 
 export default async function DashboardPage() {
-  const data = await getDashboard();
+  const [data, unread] = await Promise.all([getDashboard(), countUnread()]);
 
   return (
     <>
@@ -16,6 +17,13 @@ export default async function DashboardPage() {
           <p className="sub">Was gerade ansteht und was noch abzurechnen ist.</p>
         </div>
       </div>
+
+      {unread > 0 && (
+        <p className="notice notice-warn">
+          {unread === 1 ? "Eine neue Nachricht" : `${unread} neue Nachrichten`} über das
+          Kontaktformular. <Link href="/app/nachrichten">Zum Posteingang</Link>
+        </p>
+      )}
 
       <div className="stat-grid">
         <div className="stat">

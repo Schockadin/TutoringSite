@@ -10,11 +10,12 @@ const LINKS = [
   { href: "/app/schueler", label: "Schüler:innen" },
   { href: "/app/kalender", label: "Kalender" },
   { href: "/app/stunden", label: "Stunden" },
+  { href: "/app/nachrichten", label: "Nachrichten" },
   { href: "/app/rechnungen", label: "Rechnungen" },
   { href: "/app/einstellungen", label: "Einstellungen" },
 ];
 
-export function AdminNav() {
+export function AdminNav({ unread = 0 }: { unread?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -45,6 +46,11 @@ export function AdminNav() {
                 <li key={link.href}>
                   <Link href={link.href} className={active ? "active" : undefined}>
                     {link.label}
+                    {link.href === "/app/nachrichten" && unread > 0 && (
+                      <span className="nav-badge" aria-label={`${unread} ungelesen`}>
+                        {unread}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );

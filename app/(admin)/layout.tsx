@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/AdminNav";
+import { countUnread } from "@/lib/actions/contact";
 import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -20,9 +21,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { valid } = await getSession();
   if (!valid) redirect("/login");
 
+  const unread = await countUnread();
+
   return (
     <div className="app-shell">
-      <AdminNav />
+      <AdminNav unread={unread} />
       <main className="app-main container">{children}</main>
     </div>
   );

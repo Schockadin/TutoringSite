@@ -32,15 +32,33 @@ export default function DatenschutzPage() {
         </p>
 
         <h2>Kontaktformular</h2>
-        {/* Praezisiert auf "ueber dieses Kontaktformular", damit der Satz nicht
-            als seitenweite Aussage gelesen werden kann. Inhaltlich unveraendert:
-            das Formular sendet weiterhin nichts an einen Server. */}
         <p>
-          Diese Website enthält ein Kontaktformular. Die über dieses Kontaktformular eingegebenen
-          Daten (Name, E-Mail-Adresse, optional Telefonnummer, Fach und Nachricht) werden nicht an
-          einen Server dieser Website übermittelt, sondern über das E-Mail-Programm deines Geräts
-          direkt als E-Mail an dominic.zander@outlook.de versendet. Es findet keine Speicherung der
-          Formulardaten auf dieser Website statt.
+          Über das Kontaktformular dieser Website kannst du eine Anfrage senden. Die dabei
+          eingegebenen Daten – Name, E-Mail-Adresse, optional Telefonnummer, Fach und deine
+          Nachricht – werden an den Server dieser Website übermittelt und dort in einer Datenbank
+          gespeichert, damit ich sie bearbeiten kann.
+        </p>
+        <p>
+          Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, da die Verarbeitung der Beantwortung
+          deiner Anfrage und der Anbahnung eines möglichen Nachhilfevertrags dient. Sofern deine
+          Anfrage nicht auf einen Vertrag zielt, stütze ich die Verarbeitung auf mein berechtigtes
+          Interesse an der Beantwortung von Anfragen (Art. 6 Abs. 1 lit. f DSGVO).
+        </p>
+        <p>
+          Über den Eingang einer neuen Nachricht werde ich zusätzlich per E-Mail benachrichtigt.
+          Diese Benachrichtigung enthält die Angaben aus dem Formular und wird über den
+          Dienstleister Resend versandt (siehe Abschnitt „Eingesetzte Dienstleister").
+        </p>
+        <p>
+          Ich lösche deine Anfrage, sobald sie erledigt ist und keine gesetzlichen
+          Aufbewahrungspflichten entgegenstehen – in der Regel spätestens nach zwölf Monaten. Führt
+          deine Anfrage zu einem Nachhilfevertrag, gelten für die daraus entstehenden Unterlagen
+          die steuerlichen Aufbewahrungsfristen. Du kannst jederzeit die Löschung verlangen.
+        </p>
+        <p>
+          Die Angabe von Name, E-Mail-Adresse und Nachricht ist erforderlich, um deine Anfrage
+          beantworten zu können. Alle weiteren Angaben sind freiwillig. Du kannst mich auch
+          formlos per E-Mail oder Telefon erreichen; die Kontaktdaten stehen im Impressum.
         </p>
 
         <h2>Geschützter interner Bereich</h2>
@@ -68,10 +86,15 @@ export default function DatenschutzPage() {
           </a>
           .
         </p>
+        <h2>Eingesetzte Dienstleister</h2>
         <p>
-          Die Daten des internen Verwaltungsbereichs werden in einer Datenbank bei Railway
-          Corporation gespeichert, die als Auftragsverarbeiter auf Grundlage eines Vertrags nach
-          Art. 28 DSGVO tätig wird.
+          Die Daten des Kontaktformulars und des internen Verwaltungsbereichs werden in einer
+          Datenbank bei der Railway Corporation gespeichert. Für den Versand der
+          E-Mail-Benachrichtigung über neue Kontaktanfragen setze ich Resend (Plus Five Five, Inc.)
+          ein; die Zustellung erfolgt über deren Infrastruktur in der Region Irland (EU). Beide
+          Anbieter werden als Auftragsverarbeiter auf Grundlage eines Vertrags nach Art. 28 DSGVO
+          tätig. Soweit dabei eine Übermittlung in Drittländer erfolgt, geschieht dies auf
+          Grundlage von Standardvertragsklauseln der EU-Kommission.
         </p>
 
         <h2>Deine Rechte</h2>

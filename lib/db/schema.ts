@@ -548,6 +548,54 @@ export const creditRedemptions = pgTable(
 
 export type CreditPackage = typeof creditPackages.$inferSelect;
 
+/* ------------------------------------------------------------- Nachrichten */
+
+/**
+ * Anfragen aus dem Kontaktformular der oeffentlichen Seite.
+ *
+ * Das ist der einzige Schreibzugriff im ganzen System, der ohne Anmeldung
+ * moeglich ist. Entsprechend gibt es eine Honeypot-Falle und eine Drosselung,
+ * und alle Felder sind laengenbegrenzt.
+ *
+ * Bewusst NICHT gespeichert: IP-Adresse und User-Agent. Fuer die Drosselung
+ * reicht die Zahl der Nachrichten im Zeitfenster, und Daten, die man nicht
+ * erhebt, muss man auch nicht schuetzen oder loeschen.
+ */
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    subject: text("subject"),
+    message: text("message").notNull(),
+
+    status: text("status").notNull().default("new"),
+    readAt: timestamp("read_at", tstz),
+    archivedAt: timestamp("archived_at", tstz),
+
+    // Benachrichtigung per E-Mail: best effort. Schlaegt der Versand fehl,
+    // ist die Nachricht trotzdem gespeichert - der Fehler wird hier vermerkt
+    // und im Posteingang angezeigt, damit er nicht unbemerkt bleibt.
+    notifiedAt: timestamp("notified_at", tstz),
+    notifyError: text("notify_error"),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("contact_messages_created_idx").on(t.createdAt.desc()),
+    index("contact_messages_status_idx").on(t.status),
+    check("contact_messages_status", sql`${t.status} in ('new','read','archived')`),
+    check("contact_messages_name", sql`length(btrim(${t.name})) between 1 and 120`),
+    check("contact_messages_email", sql`length(btrim(${t.email})) between 3 and 200`),
+    check("contact_messages_message", sql`length(btrim(${t.message})) between 1 and 5000`),
+  ],
+);
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+
 export type Student = typeof students.$inferSelect;
 export type Tariff = typeof tariffs.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;

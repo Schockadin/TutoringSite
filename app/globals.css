@@ -1486,3 +1486,27 @@ textarea.invalid {
   opacity: 0.7;
   font-size: 0.9em;
 }
+
+/* Honeypot gegen Formular-Bots: fuer Menschen unsichtbar, aber nicht per
+   display:none - das erkennen manche Bots. */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Zaehler ungelesener Nachrichten in der Navigation */
+.nav-badge {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+}

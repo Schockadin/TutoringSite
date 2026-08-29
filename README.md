@@ -41,6 +41,8 @@ schon ein `DATABASE_URL` steht, gewinnt dieses gegenüber `.env.local`.
 | Variable | Zweck |
 |---|---|
 | `DATABASE_URL` | Postgres-Verbindung. TLS wird in Produktion im Code erzwungen, unabhängig davon, ob `?sslmode=require` in der URL steht. |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NOTIFY_EMAIL` | Benachrichtigung über neue Kontaktanfragen. Optional – ohne sie wird die Nachricht trotzdem gespeichert. `RESEND_FROM_EMAIL` muss eine in Resend verifizierte Domain sein. |
+| `SITE_URL` | Basis für den Link in der Benachrichtigungsmail. |
 | `ADMIN_PASSWORD_HASH` | Erzeugt mit `npm run hash-password`. Format `scrypt:N:r:p:salt:hash`. Die Felder sind mit `:` getrennt, **nicht** mit `$` – dotenv würde `$32768` sonst als Variablenreferenz lesen und den Wert zerstören. |
 
 ## Migrationen
@@ -62,6 +64,7 @@ npm run test:auth              # Terminal 2 – Anmeldung, Sitzung, Abmelden
 npm run test:workflow          #            – Termin -> Stunde -> Rechnung -> Druck -> Storno
 npm run test:serien            #            – Serientermine über die Zeitumstellung hinweg
 npm run test:guthaben          #            – vorausbezahlte Stunden, keine Doppelberechnung
+npm run test:kontakt           #            – Kontaktformular, Posteingang, Spam-Schutz
 ```
 
 Die Tests laufen gegen einen echten Server und eine echte Datenbank. `tests/workflow.mjs`
@@ -98,6 +101,17 @@ zwölf Monaten ein ungültiges Datum.
 N Einheiten für eine bestimmte Stundenlänge) und ein reines Geldguthaben, das pro Stunde
 abgebucht wird. Guthaben und Preis sind getrennte Felder, damit sich auch „200 € Guthaben
 für 180 €" abbilden lässt.
+
+**Das Kontaktformular ist der einzige Schreibzugriff ohne Anmeldung.** Entsprechend:
+Honeypot-Feld, Drosselung global und je Absenderadresse, Längenbegrenzung auf allen Feldern.
+CSRF deckt Next.js selbst ab, weil Server Actions Origin gegen Host prüfen. Bewusst nicht
+gespeichert werden IP-Adresse und User-Agent – für die Drosselung genügt die Anzahl im
+Zeitfenster, und nicht erhobene Daten muss man weder schützen noch löschen.
+
+**Die E-Mail-Benachrichtigung ist „best effort".** Eine Kontaktanfrage darf nie daran
+scheitern, dass Resend gerade nicht erreichbar ist. Die Nachricht wird zuerst gespeichert,
+danach wird benachrichtigt; ein Fehler wird am Eintrag vermerkt und im Posteingang angezeigt,
+statt still zu verschwinden.
 
 **„Offen zur Abrechnung" hat genau eine Definition**, `OPEN_FOR_BILLING` in `lib/queries.ts`.
 Sie stand vorher an fünf Stellen verteilt; mit dem Guthaben kam eine sechste Bedingung dazu.
