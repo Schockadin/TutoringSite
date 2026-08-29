@@ -39,13 +39,16 @@ export async function notifyNewMessage(input: {
   // RESEND_FROM_EMAIL ist die bereits gebräuchliche Schreibweise; RESEND_FROM
   // bleibt als Alias gültig, damit beide Benennungen funktionieren.
   const from = process.env.RESEND_FROM_EMAIL ?? process.env.RESEND_FROM;
-  const to = process.env.NOTIFY_EMAIL;
+  // Voreinstellung auf die Adresse aus dem Impressum: der Empfänger ist fest
+  // und ohnehin öffentlich, und so funktioniert die Benachrichtigung auch
+  // dann, wenn die Umgebungsvariable einmal fehlt. NOTIFY_EMAIL überschreibt
+  // sie jederzeit.
+  const to = process.env.NOTIFY_EMAIL ?? "dominic.zander@outlook.de";
 
   if (!apiKey || !from || !to) {
     const fehlend = [
       !apiKey ? "RESEND_API_KEY" : null,
       !from ? "RESEND_FROM_EMAIL" : null,
-      !to ? "NOTIFY_EMAIL" : null,
     ].filter(Boolean);
     return { ok: false, reason: `Nicht eingerichtet: ${fehlend.join(", ")} fehlt.` };
   }

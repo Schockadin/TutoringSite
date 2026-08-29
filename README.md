@@ -41,7 +41,7 @@ schon ein `DATABASE_URL` steht, gewinnt dieses gegenüber `.env.local`.
 | Variable | Zweck |
 |---|---|
 | `DATABASE_URL` | Postgres-Verbindung. TLS wird in Produktion im Code erzwungen, unabhängig davon, ob `?sslmode=require` in der URL steht. |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NOTIFY_EMAIL` | Benachrichtigung über neue Kontaktanfragen. Optional – ohne sie wird die Nachricht trotzdem gespeichert. `RESEND_FROM_EMAIL` muss eine in Resend verifizierte Domain sein. |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NOTIFY_EMAIL` | Benachrichtigung über neue Kontaktanfragen. Optional – ohne sie wird die Nachricht trotzdem gespeichert. `NOTIFY_EMAIL` hat als Vorgabe die Adresse aus dem Impressum. `RESEND_FROM_EMAIL` muss eine in Resend verifizierte Domain sein. |
 | `SITE_URL` | Basis für den Link in der Benachrichtigungsmail. |
 | `ADMIN_PASSWORD_HASH` | Erzeugt mit `npm run hash-password`. Format `scrypt:N:r:p:salt:hash`. Die Felder sind mit `:` getrennt, **nicht** mit `$` – dotenv würde `$32768` sonst als Variablenreferenz lesen und den Wert zerstören. |
 
