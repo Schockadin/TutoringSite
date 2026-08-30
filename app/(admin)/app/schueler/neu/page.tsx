@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StudentForm } from "@/components/StudentForm";
 import { createStudent, listActiveTariffs } from "@/lib/actions/students";
+import { getSettings } from "@/lib/actions/settings";
 
 export const metadata: Metadata = { title: "Neue Schüler:in – Verwaltung" };
 
 export default async function NewStudentPage() {
-  const tariffs = await listActiveTariffs();
+  const [tariffs, settings] = await Promise.all([listActiveTariffs(), getSettings()]);
 
   return (
     <>
@@ -16,7 +17,7 @@ export default async function NewStudentPage() {
       <div className="page-head">
         <h1>Neue Schüler:in</h1>
       </div>
-      <StudentForm action={createStudent} tariffs={tariffs} submitLabel="Anlegen" />
+      <StudentForm action={createStudent} tariffs={tariffs} submitLabel="Anlegen" settingsTemplate={settings.invoiceNumberTemplate} />
     </>
   );
 }

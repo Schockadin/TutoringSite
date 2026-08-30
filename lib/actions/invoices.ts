@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth";
 import { db, invoiceItems, invoices, settings, students } from "@/lib/db";
 import { billingName } from "@/lib/format";
 import { OPEN_FOR_BILLING } from "@/lib/queries";
+import { DEFAULT_TEMPLATE, counterScope, renderTemplate } from "@/lib/invoice-number";
 import * as v from "@/lib/validate";
 
 export type InvoiceFormState = { errors?: v.FieldErrors; message?: string; missing?: string[] };
@@ -288,34 +289,46 @@ export async function finalizeInvoice(invoiceId: number): Promise<InvoiceFormSta
       `);
       await recalcTotals(tx, invoiceId, s.taxRateBp);
 
-      // 2. Nummer vergeben. Kein SEQUENCE: nextval() ist nicht-transaktional,
-      //    ein Rollback wuerde die Nummer dauerhaft verbrennen und genau die
-      //    Luecken erzeugen, die § 14 Abs. 4 Nr. 4 UStG vermeiden will.
-      //    ON CONFLICT DO UPDATE haelt die Zeilensperre bis zum Commit.
-      const year = Number(
-        (
-          (await tx.execute<{ y: string }>(
-            sql`select to_char(now() at time zone 'Europe/Berlin','YYYY') as y`,
-          )) as unknown as { y: string }[]
-        )[0]!.y,
-      );
+      // 2. Nummer vergeben.
+      //
+      // Der Nummernkreis ist die gerenderte Vorlage OHNE die laufende Nummer.
+      // Steht in der Vorlage {INITIALEN} und {MM}, zaehlt jede Schueler:in in
+      // jedem Monat fuer sich; ohne diese Platzhalter entsteht automatisch ein
+      // gemeinsamer Kreis. Der Bereich ist damit nirgends fest verdrahtet.
+      //
+      // Kein SEQUENCE: nextval() ist absichtlich nicht-transaktional, ein
+      // Rollback wuerde die Nummer dauerhaft verbrennen. ON CONFLICT DO UPDATE
+      // haelt die Zeilensperre dagegen bis zum Commit.
+      const heuteRows = (await tx.execute<{ d: string }>(
+        sql`select to_char(now() at time zone 'Europe/Berlin','YYYY-MM-DD') as d`,
+      )) as unknown as { d: string }[];
+      const issueDate = heuteRows[0]!.d;
+
+      const template = student.invoiceNumberTemplate?.trim() || s.invoiceNumberTemplate || DEFAULT_TEMPLATE;
+      const ctx = {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        customerNumber: student.customerNumber,
+        issueDate,
+      };
+      const scope = counterScope(template, ctx);
 
       const seqRows = (await tx.execute<{ last_seq: number }>(sql`
-        insert into invoice_counters (year, last_seq) values (${year}, 1)
-        on conflict (year) do update set last_seq = invoice_counters.last_seq + 1
+        insert into invoice_number_counters (scope, last_seq) values (${scope}, 1)
+        on conflict (scope) do update set last_seq = invoice_number_counters.last_seq + 1
         returning last_seq
       `)) as unknown as { last_seq: number }[];
       const seq = seqRows[0]!.last_seq;
-      const number = `${s.invoiceNumberPrefix}-${year}-${String(seq).padStart(4, "0")}`;
+      const number = renderTemplate(template, ctx, seq);
 
       // 3. Alles Druckrelevante festschreiben
       await tx.execute(sql`
         update invoices set
           status = 'open',
           number = ${number},
-          number_year = ${year},
+          number_scope = ${scope},
           number_seq = ${seq},
-          issue_date = (now() at time zone 'Europe/Berlin')::date,
+          issue_date = ${issueDate}::date,
           -- ::int ist noetig: ohne Typangabe ist "date + unknown" mehrdeutig
           -- (Tage oder Intervall) und Postgres bricht mit 42725 ab.
           due_date = (now() at time zone 'Europe/Berlin')::date + ${s.paymentTermsDays}::int,
@@ -374,22 +387,36 @@ export async function cancelInvoice(invoiceId: number): Promise<{ error?: string
   if (original.status === "draft") return { error: "Entwürfe werden gelöscht, nicht storniert." };
   if (original.status === "cancelled") return { error: "Diese Rechnung ist bereits storniert." };
 
+  const [student] = await db.select().from(students).where(eq(students.id, original.studentId)).limit(1);
+  if (!student) return { error: "Die zugehörige Schüler:in fehlt." };
+
   try {
     const newId = await db.transaction(async (tx) => {
-      const year = Number(
-        (
-          (await tx.execute<{ y: string }>(
-            sql`select to_char(now() at time zone 'Europe/Berlin','YYYY') as y`,
-          )) as unknown as { y: string }[]
-        )[0]!.y,
-      );
+      // Die Stornorechnung bekommt eine eigene Nummer aus demselben
+      // Nummernkreis wie eine regulaere Rechnung dieser Schueler:in - sie ist
+      // ein vollwertiger Beleg, kein Anhaengsel des Originals.
+      const heuteRows = (await tx.execute<{ d: string }>(
+        sql`select to_char(now() at time zone 'Europe/Berlin','YYYY-MM-DD') as d`,
+      )) as unknown as { d: string }[];
+      const issueDate = heuteRows[0]!.d;
+
+      const template =
+        student.invoiceNumberTemplate?.trim() || s.invoiceNumberTemplate || DEFAULT_TEMPLATE;
+      const ctx = {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        customerNumber: student.customerNumber,
+        issueDate,
+      };
+      const scope = counterScope(template, ctx);
+
       const seqRows = (await tx.execute<{ last_seq: number }>(sql`
-        insert into invoice_counters (year, last_seq) values (${year}, 1)
-        on conflict (year) do update set last_seq = invoice_counters.last_seq + 1
+        insert into invoice_number_counters (scope, last_seq) values (${scope}, 1)
+        on conflict (scope) do update set last_seq = invoice_number_counters.last_seq + 1
         returning last_seq
       `)) as unknown as { last_seq: number }[];
       const seq = seqRows[0]!.last_seq;
-      const number = `${s.invoiceNumberPrefix}-${year}-${String(seq).padStart(4, "0")}`;
+      const number = renderTemplate(template, ctx, seq);
 
       // Zuerst als Entwurf ohne Nummer anlegen: der Trigger laesst Positionen
       // nur auf Entwuerfen zu, und der CHECK verlangt, dass eine Nummer und ein
@@ -430,9 +457,9 @@ export async function cancelInvoice(invoiceId: number): Promise<{ error?: string
         update invoices set
           status = 'open',
           number = ${number},
-          number_year = ${year},
+          number_scope = ${scope},
           number_seq = ${seq},
-          issue_date = (now() at time zone 'Europe/Berlin')::date,
+          issue_date = ${issueDate}::date,
           due_date = (now() at time zone 'Europe/Berlin')::date,
           net_cents = ${-original.netCents},
           tax_cents = ${-original.taxCents},

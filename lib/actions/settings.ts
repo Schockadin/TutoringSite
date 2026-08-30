@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { db, settings, tariffs } from "@/lib/db";
 import { TAX_NOTE_PRESETS } from "@/lib/format";
+import { validateTemplate } from "@/lib/invoice-number";
 import * as v from "@/lib/validate";
 
 export type SettingsState = { errors?: v.FieldErrors; message?: string };
@@ -37,6 +38,11 @@ export async function saveSettings(
         }) ?? 1900)
       : 0;
 
+  const invoiceNumberTemplate =
+    v.text(formData.get("invoiceNumberTemplate"), { max: 100 }) ?? "{INITIALEN}-{KUNDENNR}/{YY}-{MM}{LFD}";
+  const templateError = validateTemplate(invoiceNumberTemplate);
+  if (templateError) errors.invoiceNumberTemplate = templateError;
+
   const values = {
     issuerName: v.required(errors, "issuerName", formData.get("issuerName"), "den Namen", 120),
     issuerStreet: v.required(errors, "issuerStreet", formData.get("issuerStreet"), "die Straße", 120),
@@ -59,7 +65,7 @@ export async function saveSettings(
         allowEmpty: true,
         fallback: 14,
       }) ?? 14,
-    invoiceNumberPrefix: v.text(formData.get("invoiceNumberPrefix"), { max: 10 }) ?? "RE",
+    invoiceNumberTemplate: invoiceNumberTemplate,
     invoiceIntroText: v.text(formData.get("invoiceIntroText"), { max: 1000 }) ?? "",
     invoiceFooterNote: v.text(formData.get("invoiceFooterNote"), { max: 1000 }) ?? "",
   };

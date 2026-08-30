@@ -72,7 +72,12 @@ export const settings = pgTable(
     paymentTermsDays: integer("payment_terms_days").notNull().default(14),
 
     // Rechnungsformat
-    invoiceNumberPrefix: text("invoice_number_prefix").notNull().default("RE"),
+    // Vorlage fuer Rechnungsnummern, z. B. "{INITIALEN}-{KUNDENNR}/{YY}-{MM}{LFD}".
+    // Der Zaehlerbereich ergibt sich aus der Vorlage selbst - siehe
+    // lib/invoice-number.ts. Deshalb braucht es hier keine zweite Einstellung.
+    invoiceNumberTemplate: text("invoice_number_template")
+      .notNull()
+      .default("{INITIALEN}-{KUNDENNR}/{YY}-{MM}{LFD}"),
     invoiceIntroText: text("invoice_intro_text").notNull().default(""),
     invoiceFooterNote: text("invoice_footer_note").notNull().default(""),
 
@@ -147,12 +152,22 @@ export const students = pgTable(
     // Rueckfallebene fuer krumme Dauern, fuer die kein Tarif hinterlegt ist
     hourlyRateCents: integer("hourly_rate_cents"),
 
+    // Zweistellige Kundennummer fuer die Rechnungsnummer. Der eindeutige Index
+    // braucht keine WHERE-Klausel: Postgres behandelt NULL in einem
+    // Unique-Index ohnehin als verschieden, mehrere Personen ohne Nummer sind
+    // also erlaubt.
+    customerNumber: integer("customer_number"),
+    // Ueberschreibt die Vorlage aus den Einstellungen fuer diese Person.
+    invoiceNumberTemplate: text("invoice_number_template"),
+
     notes: text("notes"),
     archivedAt: timestamp("archived_at", tstz),
     createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
   },
   (t) => [
+    uniqueIndex("students_customer_number_key").on(t.customerNumber),
+    check("students_customer_number", sql`${t.customerNumber} is null or ${t.customerNumber} between 0 and 99`),
     index("students_name_idx").on(sql`lower(${t.lastName})`, sql`lower(${t.firstName})`),
     index("students_tariff_idx").on(t.defaultTariffId),
     check("students_first_name", sql`length(btrim(${t.firstName})) between 1 and 100`),
@@ -248,7 +263,9 @@ export const invoices = pgTable(
 
     // Fortlaufende Nummer (§ 14 Abs. 4 Nr. 4 UStG) – NULL solange Entwurf
     number: text("number").unique(),
-    numberYear: integer("number_year"),
+    // Der Nummernkreis, aus dem die Nummer stammt - festgehalten, damit
+    // nachvollziehbar bleibt, in welchem Kreis sie vergeben wurde.
+    numberScope: text("number_scope"),
     numberSeq: integer("number_seq"),
 
     issueDate: date("issue_date", { mode: "string" }),
@@ -293,7 +310,10 @@ export const invoices = pgTable(
   (t) => [
     index("invoices_student_idx").on(t.studentId, t.issueDate.desc()),
     index("invoices_status_idx").on(t.status),
-    uniqueIndex("invoices_number_pair").on(t.numberYear, t.numberSeq),
+    // Je Nummernkreis darf jede laufende Nummer nur einmal vorkommen. Ueber
+    // alle Kreise hinweg sichert der eindeutige Index auf number die
+    // Einmaligkeit nach § 14 Abs. 4 Nr. 4 UStG.
+    uniqueIndex("invoices_number_pair").on(t.numberScope, t.numberSeq),
     uniqueIndex("invoices_cancels_idx")
       .on(t.cancelsInvoiceId)
       .where(sql`${t.cancelsInvoiceId} is not null`),
@@ -360,14 +380,23 @@ export const invoiceItems = pgTable(
  * Rollback verbrennt die Nummer dauerhaft und erzeugt genau die Luecken, die
  * § 14 Abs. 4 Nr. 4 UStG vermeiden will.
  */
-export const invoiceCounters = pgTable(
-  "invoice_counters",
+/**
+ * Ein Zaehler je Nummernkreis. Der Schluessel ist die gerenderte Vorlage ohne
+ * die laufende Nummer - dadurch entstehen Nummernkreise genau so, wie die
+ * Vorlage es vorgibt, ohne dass der Bereich irgendwo fest verdrahtet waere.
+ *
+ * Bewusst eine neue Tabelle statt eines Primaerschluessel-Umbaus der alten:
+ * ein PK-Wechsel mitten in einer Migrationskette ist unnoetig heikel.
+ */
+export const invoiceNumberCounters = pgTable(
+  "invoice_number_counters",
   {
-    year: integer("year").primaryKey(),
+    scope: text("scope").primaryKey(),
     lastSeq: integer("last_seq").notNull().default(0),
   },
-  (t) => [check("invoice_counters_seq", sql`${t.lastSeq} >= 0`)],
+  (t) => [check("invoice_number_counters_seq", sql`${t.lastSeq} >= 0`)],
 );
+
 
 /* ----------------------------------------------------------- Auth-Tabellen */
 

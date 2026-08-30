@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StudentActions } from "@/components/StudentActions";
 import { StudentForm } from "@/components/StudentForm";
+import { getSettings } from "@/lib/actions/settings";
 import {
   getStudent,
   getStudentSummary,
@@ -28,12 +29,13 @@ export default async function StudentDetailPage({
   const student = await getStudent(id);
   if (!student) notFound();
 
-  const [tariffs, summary, lessons, packages, today] = await Promise.all([
+  const [tariffs, summary, lessons, packages, today, settings] = await Promise.all([
     listActiveTariffs(),
     getStudentSummary(id),
     listLessons({ studentId: id, limit: 25 }),
     listPackagesForStudent(id),
     berlinToday(),
+    getSettings(),
   ]);
 
   const update = updateStudent.bind(null, id);
@@ -88,7 +90,13 @@ export default async function StudentDetailPage({
 
       <CreditPackages studentId={id} packages={packages} today={today} />
 
-      <StudentForm action={update} student={student} tariffs={tariffs} submitLabel="Speichern" />
+      <StudentForm
+        action={update}
+        student={student}
+        tariffs={tariffs}
+        submitLabel="Speichern"
+        settingsTemplate={settings.invoiceNumberTemplate}
+      />
 
       <div className="form-section">
         <h2>Letzte Stunden und Termine</h2>

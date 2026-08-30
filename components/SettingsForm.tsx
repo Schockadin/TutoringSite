@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { saveSettings, type SettingsState } from "@/lib/actions/settings";
 import type { Settings } from "@/lib/db/schema";
 import { TAX_MODE, TAX_NOTE_PRESETS } from "@/lib/format";
+import { TemplateField } from "@/components/TemplateField";
 
 function Save() {
   const { pending } = useFormStatus();
@@ -152,13 +153,18 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             <input id="paymentTermsDays" name="paymentTermsDays" type="number" min={0} max={365} defaultValue={settings.paymentTermsDays} />
             <span className="error-msg">{e?.paymentTermsDays}</span>
           </div>
-          <div className="form-row">
-            <label htmlFor="invoiceNumberPrefix">Präfix der Rechnungsnummer</label>
-            <input id="invoiceNumberPrefix" name="invoiceNumberPrefix" defaultValue={settings.invoiceNumberPrefix} />
-            <span className="error-msg" style={{ color: "var(--color-text-muted)" }}>
-              ergibt z. B. RE-2026-0001
-            </span>
-          </div>
+          <TemplateField
+            name="invoiceNumberTemplate"
+            label="Vorlage für Rechnungsnummern"
+            defaultValue={settings.invoiceNumberTemplate}
+            error={e?.invoiceNumberTemplate}
+            hint={
+              "Der Nummernkreis ergibt sich aus der Vorlage selbst: Alles vor der laufenden " +
+              "Nummer bildet den Kreis, in dem gezählt wird. Mit {INITIALEN} und {MM} zählt " +
+              "also jede Schüler:in in jedem Monat für sich. Einzelne Schüler:innen können " +
+              "eine abweichende Vorlage bekommen."
+            }
+          />
           <div className="form-row full">
             <label htmlFor="invoiceIntroText">Einleitungstext</label>
             <textarea id="invoiceIntroText" name="invoiceIntroText" rows={2} defaultValue={settings.invoiceIntroText} placeholder="z. B. Vielen Dank für die gute Zusammenarbeit." />

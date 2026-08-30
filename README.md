@@ -65,6 +65,7 @@ npm run test:workflow          #            – Termin -> Stunde -> Rechnung -> 
 npm run test:serien            #            – Serientermine über die Zeitumstellung hinweg
 npm run test:guthaben          #            – vorausbezahlte Stunden, keine Doppelberechnung
 npm run test:kontakt           #            – Kontaktformular, Posteingang, Spam-Schutz
+npm run test:nummernkreise     #            – Rechnungsnummern-Vorlagen und Nummernkreise
 ```
 
 Die Tests laufen gegen einen echten Server und eine echte Datenbank. `tests/workflow.mjs`
@@ -80,6 +81,14 @@ einziges `UPDATE`.
 **Rechnungsnummern kommen aus einer Zählertabelle, nicht aus einem `SEQUENCE`.** `nextval()`
 ist absichtlich nicht-transaktional – ein Rollback verbrennt die Nummer dauerhaft und erzeugt
 genau die Lücken, die § 14 UStG vermeiden will.
+
+**Der Nummernkreis wird aus der Vorlage abgeleitet, nicht fest verdrahtet.** Eine Vorlage wie
+`{INITIALEN}-{KUNDENNR}/{YY}-{MM}{LFD}` ergibt `LM-01/26-0901`; der Zählerschlüssel ist die
+gerenderte Vorlage *ohne* die laufende Nummer, hier also `LM-01/26-08`. Damit zählt jede
+Schüler:in in jedem Monat für sich – und eine Vorlage ohne `{INITIALEN}` erzeugt automatisch
+einen gemeinsamen Kreis, ohne dass am Code etwas geändert werden müsste. Einzelne
+Schüler:innen können eine abweichende Vorlage bekommen. Rechtlich verlangt § 14 Abs. 4 Nr. 4
+UStG Einmaligkeit, nicht Lückenlosigkeit; getrennte Nummernkreise je Kundschaft sind zulässig.
 
 **Beträge sind Integer in Cent.** Der Postgres-Treiber liefert `numeric` als String zurück,
 auch bei `SUM()`.

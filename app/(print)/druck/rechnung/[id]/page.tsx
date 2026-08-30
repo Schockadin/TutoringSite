@@ -26,7 +26,11 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ i
     );
   }
 
-  const fileName = `Rechnung_${invoice.number}_${(invoice.recipientName ?? "").split(" ").pop() ?? ""}`;
+  // Rechnungsnummern koennen je nach Vorlage Schraegstriche enthalten
+  // ("LM-01/26-0801"). Im Dateinamen waere das ein Pfadtrenner, deshalb werden
+  // alle dateisystem-unsicheren Zeichen ersetzt.
+  const fileName = `Rechnung_${invoice.number}_${(invoice.recipientName ?? "").split(" ").pop() ?? ""}`
+    .replace(/[\/\\:*?"<>|]/g, "-");
 
   return (
     <>

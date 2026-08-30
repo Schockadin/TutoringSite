@@ -116,7 +116,7 @@ await page.click('button:has-text("Festschreiben")');
 await page.waitForTimeout(2500);
 await page.reload();
 const finalized = await page.textContent("h1");
-/RE-\d{4}-0001/.test(finalized ?? "")
+/LM-\d{2}\/\d{2}-\d{4}/.test(finalized ?? "")
   ? ok(`Festgeschrieben mit Nummer ${finalized?.trim()}`)
   : bad("Keine Rechnungsnummer vergeben", finalized ?? "");
 
@@ -134,7 +134,7 @@ lessonLocked?.includes("unveränderlich")
 await page.goto(`${BASE}/druck/rechnung/${invoiceId}`);
 const print = await page.textContent("body");
 const checks = [
-  ["Rechnungsnummer", /RE-\d{4}-0001/],
+  ["Rechnungsnummer", /LM-\d{2}\/\d{2}-\d{4}/],
   ["Rechnungsdatum", /Rechnungsdatum/],
   ["Leistungszeitraum", /Leistungszeitraum/],
   ["Name des Ausstellers", /Dominic Zander/],
@@ -158,8 +158,9 @@ await page.waitForSelector('button:has-text("Stornieren")', { timeout: 20000 });
 await page.click('button:has-text("Stornieren")');
 await page.waitForTimeout(4000);
 const stornoH1 = await page.textContent("h1");
-/RE-\d{4}-0002/.test(stornoH1 ?? "")
-  ? ok(`Storno erhält die nächste Nummer (${stornoH1?.trim()})`)
+// Zweite Nummer im selben Kreis: die laufende Nummer endet auf 02
+/LM-\d{2}\/\d{2}-\d{2}02/.test(stornoH1 ?? "")
+  ? ok(`Storno erhält die nächste Nummer im selben Kreis (${stornoH1?.trim()})`)
   : bad("Storno-Nummer falsch", stornoH1 ?? "");
 const stornoBody = await page.textContent("body");
 stornoBody?.includes("Stornorechnung") ? ok("Als Stornorechnung gekennzeichnet") : bad("Kennzeichnung fehlt");
@@ -169,7 +170,9 @@ await page.goto(`${BASE}/app/rechnungen/${invoiceId}`);
 await page.waitForSelector("h1", { timeout: 20000 });
 const origBody = await page.textContent("body");
 origBody?.includes("storniert") ? ok("Original als storniert markiert") : bad("Original nicht storniert");
-origBody?.includes("RE-2026-0001") ? ok("Original behält seine Nummer") : bad("Originalnummer verloren");
+/LM-\d{2}\/\d{2}-\d{2}01/.test(origBody ?? "")
+  ? ok("Original behält seine Nummer")
+  : bad("Originalnummer verloren");
 
 await browser.close();
 console.log(failed === 0 ? "\n  Alle Prüfungen bestanden." : `\n  ${failed} Prüfung(en) fehlgeschlagen.`);

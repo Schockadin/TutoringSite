@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db, invoices, lessons, students } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { OPEN_FOR_BILLING } from "@/lib/queries";
+import { validateTemplate } from "@/lib/invoice-number";
 import * as v from "@/lib/validate";
 
 export type StudentFormState = { errors?: v.FieldErrors; message?: string };
@@ -36,8 +37,22 @@ function parse(formData: FormData) {
       allowEmpty: true,
     }),
     hourlyRateCents: v.euroToCents(errors, "hourlyRateCents", formData.get("hourlyRateCents"), "den Stundensatz"),
+    customerNumber: v.integer(errors, "customerNumber", formData.get("customerNumber"), "eine Kundennummer", {
+      min: 0,
+      max: 99,
+      allowEmpty: true,
+    }),
+    invoiceNumberTemplate: v.text(formData.get("invoiceNumberTemplate"), { max: 100 }),
+
     notes: v.text(formData.get("notes"), { max: 4000 }),
   };
+
+  // Leer heisst "Vorlage aus den Einstellungen verwenden" - nur ein
+  // ausgefuelltes Feld wird geprueft.
+  if (values.invoiceNumberTemplate) {
+    const fehler = validateTemplate(values.invoiceNumberTemplate);
+    if (fehler) errors.invoiceNumberTemplate = fehler;
+  }
 
   return { errors, values };
 }
@@ -50,6 +65,16 @@ export async function createStudent(
   const { errors, values } = parse(formData);
   if (Object.keys(errors).length > 0) {
     return { errors, message: "Bitte überprüfe die markierten Felder." };
+  }
+
+  // Ohne Angabe die naechste freie Kundennummer vergeben. Ab 100 bleibt sie
+  // leer und muss von Hand gesetzt werden - zweistellig ist zweistellig.
+  if (values.customerNumber === null) {
+    const [frei] = await db.execute<{ next: number | null }>(
+      sql`select min(n)::int as next from generate_series(1, 99) n
+          where n not in (select customer_number from students where customer_number is not null)`,
+    );
+    values.customerNumber = (frei as unknown as { next: number | null }).next ?? null;
   }
 
   const [row] = await db.insert(students).values(values).returning({ id: students.id });

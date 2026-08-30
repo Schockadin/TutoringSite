@@ -1510,3 +1510,39 @@ textarea.invalid {
   line-height: 1.5;
   text-align: center;
 }
+
+/* Vorschau und Hilfe zu Rechnungsnummern-Vorlagen */
+.template-preview {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.template-preview strong {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color: var(--color-text);
+}
+
+.template-help {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  background: var(--color-bg-alt);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.template-help li {
+  margin-bottom: 2px;
+}
+
+.template-help code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color: var(--color-text);
+  margin-right: 6px;
+}

@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import type { StudentFormState } from "@/lib/actions/students";
 import type { Student, Tariff } from "@/lib/db/schema";
 import { money } from "@/lib/format";
+import { TemplateField } from "@/components/TemplateField";
 
 function Save({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -50,11 +51,14 @@ export function StudentForm({
   student,
   tariffs,
   submitLabel,
+  settingsTemplate,
 }: {
   action: (prev: StudentFormState, formData: FormData) => Promise<StudentFormState>;
   student?: Student;
   tariffs: Tariff[];
   submitLabel: string;
+  /** Vorlage aus den Einstellungen - als Platzhalter und Vorschaugrundlage. */
+  settingsTemplate: string;
 }) {
   const [state, formAction] = useActionState<StudentFormState, FormData>(action, {});
   const e = state.errors;
@@ -157,6 +161,42 @@ export function StudentForm({
           <Field name="notes" label="Notizen" errors={e} full>
             <textarea id="notes" name="notes" rows={4} defaultValue={student?.notes ?? ""} />
           </Field>
+        </div>
+      </div>
+
+      <div className="form-section">
+        <h2>Rechnungsnummern</h2>
+        <p className="hint">
+          Die Kundennummer erscheint in der Rechnungsnummer und unterscheidet Personen mit
+          gleichen Initialen. Bleibt sie beim Anlegen leer, wird die nächste freie vergeben.
+        </p>
+        <div className="form-grid">
+          <Field name="customerNumber" label="Kundennummer (00–99)" errors={e}>
+            <input
+              id="customerNumber"
+              name="customerNumber"
+              type="number"
+              min={0}
+              max={99}
+              defaultValue={student?.customerNumber ?? ""}
+              className={bad("customerNumber")}
+              placeholder="automatisch"
+            />
+          </Field>
+
+          <TemplateField
+            name="invoiceNumberTemplate"
+            label="Abweichende Vorlage (optional)"
+            defaultValue={student?.invoiceNumberTemplate ?? ""}
+            placeholder={settingsTemplate}
+            error={e?.invoiceNumberTemplate}
+            hint="Leer lassen, um die Vorlage aus den Einstellungen zu verwenden."
+            context={{
+              firstName: student?.firstName || "Lena",
+              lastName: student?.lastName || "Muster",
+              customerNumber: student?.customerNumber ?? 1,
+            }}
+          />
         </div>
       </div>
 
