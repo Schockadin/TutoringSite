@@ -1,0 +1,26 @@
+# Abhängigkeiten
+node_modules/
+
+# Next.js Build-Artefakte
+.next/
+out/
+next-env.d.ts
+
+# Netlify
+.netlify/
+
+# Umgebungsvariablen – niemals committen
+.env
+.env.*
+!.env.example
+
+# Datenbank-Dumps und Exporte enthalten personenbezogene Daten
+*.dump
+*.sql.gz
+backups/
+
+# Betriebssystem
+.DS_Store
+
+# TypeScript-Build-Cache
+*.tsbuildinfo

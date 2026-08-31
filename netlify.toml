@@ -1,26 +1,60 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Die Next.js-Runtime wird von Netlify automatisch installiert. Sie hier
+# explizit zu nennen macht die Abhaengigkeit im Repo sichtbar.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # Bisher nicht gesetzt. Achtung: eine einmal ausgelieferte HSTS-Frist laesst
+    # sich nicht kurzfristig zuruecknehmen – die Domain ist damit auf HTTPS festgelegt.
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
+# Von Next.js gehashte Assets duerfen dauerhaft gecacht werden: aendert sich der
+# Inhalt, aendert sich der Dateiname.
 [[headers]]
-  for = "/css/*"
+  for = "/_next/static/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[headers]]
-  for = "/js/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
+# Die Bilder liegen unter unveraenderten Namen und wurden in der Vergangenheit
+# schon einmal in place ausgetauscht (img/herobanner.png, Commit f789178).
+# Deshalb bewusst NICHT immutable: sonst sehen wiederkehrende Besucher:innen
+# ein Jahr lang das alte Bild, ohne dass eine Korrektur sie je erreicht.
 [[headers]]
   for = "/img/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
 
 [[headers]]
   for = "/favicon.svg"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+# Der Verwaltungsbereich: authentifizierte Oberflaeche, gehoert in keinen
+# geteilten Cache und in keinen Suchindex.
+[[headers]]
+  for = "/app/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+# Die Druckansicht zeigt Rechnungsdaten und ist ebenso geschuetzt wie /app
+[[headers]]
+  for = "/druck/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/login"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"

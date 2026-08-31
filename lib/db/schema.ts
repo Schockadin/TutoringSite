@@ -1,0 +1,633 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  check,
+  customType,
+  date,
+  index,
+  integer,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+/**
+ * Bezeichner und Statuswerte sind durchgehend englisch – Deutsch erscheint
+ * ausschliesslich im UI ueber die Label-Maps in lib/format.ts.
+ *
+ * Statuswerte sind text + CHECK statt Postgres-ENUM: einen Wert zu ergaenzen
+ * ist damit eine Zeile Migration statt eines ALTER-TYPE-Tanzes.
+ *
+ * Geldbetraege sind durchgehend integer in Cent, niemals numeric. Der Treiber
+ * liefert numeric als String zurueck (auch bei SUM()), Cent-Integer mappen
+ * dagegen exakt auf JS-number. Jedes Feld traegt den Suffix _cents, damit ein
+ * Einheitenfehler an der Aufrufstelle sichtbar wird.
+ */
+
+const bytea = customType<{ data: Buffer; notNull: true }>({
+  dataType: () => "bytea",
+});
+
+const tstz = { withTimezone: true, mode: "string" } as const;
+
+/* ---------------------------------------------------------------- Settings */
+
+/**
+ * Genau eine Zeile. Eine typisierte Tabelle schlaegt hier einen JSONB-Blob:
+ * die Felder sind wenige, fest, und jedes einzelne ist eine Pflichtangabe
+ * nach § 14 Abs. 4 UStG, die einen Namen und eine Bedingung verdient.
+ */
+export const settings = pgTable(
+  "settings",
+  {
+    id: smallint("id").primaryKey().default(1),
+
+    // Leistender Unternehmer (§ 14 Abs. 4 Nr. 1 UStG)
+    issuerName: text("issuer_name").notNull().default(""),
+    issuerStreet: text("issuer_street").notNull().default(""),
+    issuerPostalCode: text("issuer_postal_code").notNull().default(""),
+    issuerCity: text("issuer_city").notNull().default(""),
+    issuerCountry: text("issuer_country").notNull().default("DE"),
+    issuerEmail: text("issuer_email").notNull().default(""),
+    issuerPhone: text("issuer_phone").notNull().default(""),
+
+    // Steuernummer oder USt-IdNr. (§ 14 Abs. 4 Nr. 2 UStG) – mindestens eines Pflicht
+    taxNumber: text("tax_number").notNull().default(""),
+    vatId: text("vat_id").notNull().default(""),
+
+    // Steuerregime. Voreinstellung ist § 4 Nr. 21 UStG, weil genau das im
+    // Impressum steht – NICHT die Kleinunternehmerregelung nach § 19.
+    taxMode: text("tax_mode").notNull().default("exempt_4_21"),
+    taxRateBp: integer("tax_rate_bp").notNull().default(0), // Basispunkte: 1900 = 19 %
+    taxNote: text("tax_note")
+      .notNull()
+      .default("Umsatzsteuerbefreit gemäß § 4 Nr. 21 Buchst. b UStG."),
+
+    // Zahlungsdaten
+    bankAccountHolder: text("bank_account_holder").notNull().default(""),
+    iban: text("iban").notNull().default(""),
+    bic: text("bic").notNull().default(""),
+    paymentTermsDays: integer("payment_terms_days").notNull().default(14),
+
+    // Rechnungsformat
+    // Vorlage fuer Rechnungsnummern, z. B. "{INITIALEN}-{KUNDENNR}/{YY}-{MM}{LFD}".
+    // Der Zaehlerbereich ergibt sich aus der Vorlage selbst - siehe
+    // lib/invoice-number.ts. Deshalb braucht es hier keine zweite Einstellung.
+    invoiceNumberTemplate: text("invoice_number_template")
+      .notNull()
+      .default("{INITIALEN}-{KUNDENNR}/{YY}-{MM}{LFD}"),
+    invoiceIntroText: text("invoice_intro_text").notNull().default(""),
+    invoiceFooterNote: text("invoice_footer_note").notNull().default(""),
+
+    defaultDurationMinutes: integer("default_duration_minutes").notNull().default(60),
+
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    check("settings_singleton", sql`${t.id} = 1`),
+    check("settings_tax_mode", sql`${t.taxMode} in ('exempt_4_21','small_business_19','standard')`),
+    check("settings_tax_rate", sql`${t.taxRateBp} between 0 and 10000`),
+    check("settings_terms", sql`${t.paymentTermsDays} between 0 and 365`),
+    check("settings_duration", sql`${t.defaultDurationMinutes} between 1 and 600`),
+  ],
+);
+
+/* ----------------------------------------------------------------- Tariffs */
+
+/**
+ * Das Preisprimitiv. Bewusst NICHT "Stundensatz": laut Preisliste kostet eine
+ * 60-Minuten-Stunde 35 €, eine 90-Minuten-Stunde aber 45 € und nicht 52,50 €.
+ * Abgerechnet wird die Stunde, nicht die Zeiteinheit.
+ */
+export const tariffs = pgTable(
+  "tariffs",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    name: text("name").notNull(),
+    durationMinutes: integer("duration_minutes").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    active: boolean("active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("tariffs_name_key").on(sql`lower(btrim(${t.name}))`),
+    check("tariffs_name_len", sql`length(btrim(${t.name})) between 1 and 100`),
+    check("tariffs_duration", sql`${t.durationMinutes} between 1 and 600`),
+    check("tariffs_price", sql`${t.priceCents} >= 0`),
+  ],
+);
+
+/* ---------------------------------------------------------------- Students */
+
+export const students = pgTable(
+  "students",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    grade: text("grade"),
+    school: text("school"),
+    subjects: text("subjects").array().notNull().default(sql`'{}'`),
+    studentEmail: text("student_email"),
+    studentPhone: text("student_phone"),
+
+    // Rechnungsempfaenger sind in der Regel die Eltern, nicht das Kind.
+    // Minderjaehrige sind ueblicherweise nicht Vertragspartner – deshalb ein
+    // eigener Block statt einer Wiederverwendung der Schuelerdaten.
+    billingName: text("billing_name"),
+    billingEmail: text("billing_email"),
+    billingPhone: text("billing_phone"),
+    billingStreet: text("billing_street"),
+    billingPostalCode: text("billing_postal_code"),
+    billingCity: text("billing_city"),
+    billingCountry: text("billing_country").notNull().default("DE"),
+
+    defaultTariffId: integer("default_tariff_id").references(() => tariffs.id, {
+      onDelete: "set null",
+    }),
+    // Rueckfallebene fuer krumme Dauern, fuer die kein Tarif hinterlegt ist
+    hourlyRateCents: integer("hourly_rate_cents"),
+
+    // Zweistellige Kundennummer fuer die Rechnungsnummer. Der eindeutige Index
+    // braucht keine WHERE-Klausel: Postgres behandelt NULL in einem
+    // Unique-Index ohnehin als verschieden, mehrere Personen ohne Nummer sind
+    // also erlaubt.
+    customerNumber: integer("customer_number"),
+    // Ueberschreibt die Vorlage aus den Einstellungen fuer diese Person.
+    invoiceNumberTemplate: text("invoice_number_template"),
+
+    notes: text("notes"),
+    archivedAt: timestamp("archived_at", tstz),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("students_customer_number_key").on(t.customerNumber),
+    check("students_customer_number", sql`${t.customerNumber} is null or ${t.customerNumber} between 0 and 99`),
+    index("students_name_idx").on(sql`lower(${t.lastName})`, sql`lower(${t.firstName})`),
+    index("students_tariff_idx").on(t.defaultTariffId),
+    check("students_first_name", sql`length(btrim(${t.firstName})) between 1 and 100`),
+    check("students_last_name", sql`length(btrim(${t.lastName})) between 1 and 100`),
+    check("students_hourly_rate", sql`${t.hourlyRateCents} is null or ${t.hourlyRateCents} >= 0`),
+  ],
+);
+
+/* ----------------------------------------------------------------- Lessons */
+
+/**
+ * Termin und Stunde sind DIESELBE Zeile, unterschieden durch status.
+ *
+ * Zwei getrennte Tabellen wuerden einen Zwei-Wege-Abgleich erzwingen (Termin
+ * verschieben – wandert die Stunde mit?), einen Join fuer den Kalender kosten
+ * und eine zusaetzliche Zustandslogik gegen "ein Termin erzeugt zwei Stunden"
+ * verlangen. So ist der Ein-Klick-Workflow schlicht ein UPDATE des Status.
+ *
+ * status='planned' ist im UI ein Termin, status='held' eine Stunde.
+ */
+export const lessons = pgTable(
+  "lessons",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId: integer("student_id")
+      .notNull()
+      // RESTRICT, nicht CASCADE: Abrechnungshistorie darf nie still verschwinden.
+      .references(() => students.id, { onDelete: "restrict" }),
+
+    startsAt: timestamp("starts_at", tstz).notNull(),
+    durationMinutes: integer("duration_minutes").notNull(),
+
+    status: text("status").notNull().default("planned"),
+
+    subject: text("subject"),
+    location: text("location"),
+    topic: text("topic"),
+    notes: text("notes"),
+
+    tariffId: integer("tariff_id").references(() => tariffs.id, { onDelete: "set null" }),
+    priceCents: integer("price_cents"),
+    // Bewusst getrennt vom Status: ein no_show ist oft trotzdem abrechenbar,
+    // eine gehaltene Probestunde dagegen nicht.
+    billable: boolean("billable").notNull().default(true),
+
+    cancelledAt: timestamp("cancelled_at", tstz),
+    cancellationReason: text("cancellation_reason"),
+
+    // Herkunft aus einer Terminserie. SET NULL beim Loeschen der Serie: eine
+    // bereits abgerechnete Stunde darf nie mitgeloescht werden, sie verliert
+    // nur ihre Zugehoerigkeit.
+    seriesId: integer("series_id"),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("lessons_starts_idx").on(t.startsAt),
+    index("lessons_series_idx").on(t.seriesId),
+    index("lessons_student_starts_idx").on(t.studentId, t.startsAt.desc()),
+    index("lessons_tariff_idx").on(t.tariffId),
+    check("lessons_duration", sql`${t.durationMinutes} between 1 and 600`),
+    check("lessons_status", sql`${t.status} in ('planned','held','cancelled','no_show')`),
+    check("lessons_price", sql`${t.priceCents} is null or ${t.priceCents} >= 0`),
+    check(
+      "lessons_price_required",
+      sql`${t.status} not in ('held','no_show') or not ${t.billable} or ${t.priceCents} is not null`,
+    ),
+    check(
+      "lessons_cancel_fields",
+      sql`(${t.status} = 'cancelled') = (${t.cancelledAt} is not null)`,
+    ),
+  ],
+);
+
+/* ---------------------------------------------------------------- Invoices */
+
+/**
+ * Jedes Feld, das der Ausdruck zeigt, wird beim Festschreiben auf die Rechnung
+ * kopiert. Wuerde der Druck die Absenderdaten live aus settings lesen, wuerde
+ * ein Adresswechsel die Historie umschreiben – fachlich falsch und ein
+ * GoBD-Problem.
+ */
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+
+    status: text("status").notNull().default("draft"),
+
+    // Fortlaufende Nummer (§ 14 Abs. 4 Nr. 4 UStG) – NULL solange Entwurf
+    number: text("number").unique(),
+    // Der Nummernkreis, aus dem die Nummer stammt - festgehalten, damit
+    // nachvollziehbar bleibt, in welchem Kreis sie vergeben wurde.
+    numberScope: text("number_scope"),
+    numberSeq: integer("number_seq"),
+
+    issueDate: date("issue_date", { mode: "string" }),
+    dueDate: date("due_date", { mode: "string" }),
+    servicePeriodStart: date("service_period_start", { mode: "string" }),
+    servicePeriodEnd: date("service_period_end", { mode: "string" }),
+
+    // Snapshots Leistender
+    issuerName: text("issuer_name"),
+    issuerAddress: text("issuer_address"),
+    issuerEmail: text("issuer_email"),
+    issuerPhone: text("issuer_phone"),
+    issuerTaxNumber: text("issuer_tax_number"),
+    issuerVatId: text("issuer_vat_id"),
+    issuerAccountHolder: text("issuer_account_holder"),
+    issuerIban: text("issuer_iban"),
+    issuerBic: text("issuer_bic"),
+
+    // Snapshots Leistungsempfaenger
+    recipientName: text("recipient_name"),
+    recipientAddress: text("recipient_address"),
+
+    // Snapshots Steuer – ein spaeterer Regimewechsel darf alte Rechnungen nicht veraendern
+    taxMode: text("tax_mode"),
+    taxRateBp: integer("tax_rate_bp"),
+    taxNote: text("tax_note"),
+
+    netCents: integer("net_cents").notNull().default(0),
+    taxCents: integer("tax_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull().default(0),
+
+    introText: text("intro_text"),
+    footerNote: text("footer_note"),
+
+    paidOn: date("paid_on", { mode: "string" }),
+    cancelledAt: timestamp("cancelled_at", tstz),
+    cancelsInvoiceId: integer("cancels_invoice_id"),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("invoices_student_idx").on(t.studentId, t.issueDate.desc()),
+    index("invoices_status_idx").on(t.status),
+    // Je Nummernkreis darf jede laufende Nummer nur einmal vorkommen. Ueber
+    // alle Kreise hinweg sichert der eindeutige Index auf number die
+    // Einmaligkeit nach § 14 Abs. 4 Nr. 4 UStG.
+    uniqueIndex("invoices_number_pair").on(t.numberScope, t.numberSeq),
+    uniqueIndex("invoices_cancels_idx")
+      .on(t.cancelsInvoiceId)
+      .where(sql`${t.cancelsInvoiceId} is not null`),
+    check("invoices_status", sql`${t.status} in ('draft','open','paid','cancelled')`),
+    // Macht einen nummerierten Entwurf und eine unnummerierte finale Rechnung
+    // strukturell unmoeglich.
+    check("invoices_number_when_final", sql`(${t.status} = 'draft') = (${t.number} is null)`),
+    check("invoices_issue_when_final", sql`${t.status} = 'draft' or ${t.issueDate} is not null`),
+    check("invoices_paid_fields", sql`${t.status} <> 'paid' or ${t.paidOn} is not null`),
+    check("invoices_total_consistent", sql`${t.totalCents} = ${t.netCents} + ${t.taxCents}`),
+    // Stornorechnungen duerfen negativ sein - ihre Positionen sind die
+    // negierten Positionen des Originals. Regulaere Rechnungen nicht.
+    check(
+      "invoices_amounts",
+      sql`${t.cancelsInvoiceId} is not null or (${t.netCents} >= 0 and ${t.totalCents} >= 0)`,
+    ),
+  ],
+);
+
+export const invoiceItems = pgTable(
+  "invoice_items",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    invoiceId: integer("invoice_id")
+      .notNull()
+      .references(() => invoices.id, { onDelete: "cascade" }),
+    // RESTRICT: eine Stunde auf einer Rechnung – auch einem Entwurf – darf nicht
+    // geloescht werden. Zum Entfernen wird erst die Position geloescht.
+    lessonId: integer("lesson_id").references(() => lessons.id, { onDelete: "restrict" }),
+    // Ein Guthabenpaket wird selbst berechnet - die daraus verrechneten
+    // Stunden dann nicht mehr.
+    packageId: integer("package_id"),
+
+    position: integer("position").notNull(),
+    description: text("description").notNull(),
+    serviceDate: date("service_date", { mode: "string" }),
+    quantity: integer("quantity").notNull().default(1),
+    unit: text("unit").notNull().default("Einheit"),
+    // Darf negativ sein: § 14 Abs. 4 Nr. 7 UStG verlangt den Ausweis einer im
+    // Voraus vereinbarten Entgeltminderung (Rabattzeile).
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("invoice_items_position").on(t.invoiceId, t.position),
+    // Die Doppelabrechnungs-Sperre. Als DB-Invariante, damit sie auch bei
+    // nebenlaeufiger Entwurfserstellung haelt.
+    uniqueIndex("invoice_items_lesson_key")
+      .on(t.lessonId)
+      .where(sql`${t.lessonId} is not null`),
+    uniqueIndex("invoice_items_package_key")
+      .on(t.packageId)
+      .where(sql`${t.packageId} is not null`),
+    check("invoice_items_quantity", sql`${t.quantity} > 0`),
+    check("invoice_items_description", sql`length(btrim(${t.description})) > 0`),
+    check("invoice_items_amount", sql`${t.amountCents} = ${t.quantity} * ${t.unitPriceCents}`),
+  ],
+);
+
+/**
+ * Kein Postgres-SEQUENCE: nextval() ist absichtlich nicht-transaktional, ein
+ * Rollback verbrennt die Nummer dauerhaft und erzeugt genau die Luecken, die
+ * § 14 Abs. 4 Nr. 4 UStG vermeiden will.
+ */
+/**
+ * Ein Zaehler je Nummernkreis. Der Schluessel ist die gerenderte Vorlage ohne
+ * die laufende Nummer - dadurch entstehen Nummernkreise genau so, wie die
+ * Vorlage es vorgibt, ohne dass der Bereich irgendwo fest verdrahtet waere.
+ *
+ * Bewusst eine neue Tabelle statt eines Primaerschluessel-Umbaus der alten:
+ * ein PK-Wechsel mitten in einer Migrationskette ist unnoetig heikel.
+ */
+export const invoiceNumberCounters = pgTable(
+  "invoice_number_counters",
+  {
+    scope: text("scope").primaryKey(),
+    lastSeq: integer("last_seq").notNull().default(0),
+  },
+  (t) => [check("invoice_number_counters_seq", sql`${t.lastSeq} >= 0`)],
+);
+
+
+/* ----------------------------------------------------------- Auth-Tabellen */
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    // sha256(token) – niemals der Token selbst. Ein DB-Leak liefert damit
+    // keine nutzbaren Sitzungen.
+    tokenHash: bytea("token_hash").primaryKey(),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", tstz).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", tstz).notNull(),
+    userAgent: text("user_agent"),
+  },
+  (t) => [index("sessions_expires_idx").on(t.expiresAt)],
+);
+
+export const loginAttempts = pgTable(
+  "login_attempts",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    attemptedAt: timestamp("attempted_at", tstz).notNull().defaultNow(),
+    success: boolean("success").notNull(),
+  },
+  (t) => [index("login_attempts_time_idx").on(t.attemptedAt.desc())],
+);
+
+/* ------------------------------------------------------------ Serientermine */
+
+/**
+ * Eine Terminserie, z. B. "jeden Dienstag 17:00 mit Lena".
+ *
+ * Die einzelnen Termine werden beim Anlegen als echte lessons-Zeilen erzeugt
+ * und nicht aus der Regel heraus errechnet. Das ist keine Bequemlichkeit,
+ * sondern notwendig: eine Stunde wird abgerechnet, haengt an einer
+ * Rechnungsposition und wird nach dem Festschreiben von Triggern gesperrt.
+ * Ein nur virtuell existierendes Vorkommen koennte davon nichts.
+ *
+ * Die Serie bleibt trotzdem erhalten, damit "diesen und alle folgenden"
+ * moeglich ist und man sieht, wo ein Termin herkommt.
+ */
+export const lessonSeries = pgTable(
+  "lesson_series",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+
+    // Ortszeit, nicht UTC: "jeden Dienstag 17:00" bleibt ueber die
+    // Zeitumstellung hinweg 17:00 Ortszeit. Jedes Vorkommen wird einzeln
+    // nach Europe/Berlin umgerechnet.
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    untilDate: date("until_date", { mode: "string" }).notNull(),
+    timeLocal: text("time_local").notNull(),
+    intervalWeeks: integer("interval_weeks").notNull().default(1),
+
+    durationMinutes: integer("duration_minutes").notNull(),
+    subject: text("subject"),
+    location: text("location"),
+    tariffId: integer("tariff_id").references(() => tariffs.id, { onDelete: "set null" }),
+    priceCents: integer("price_cents"),
+    billable: boolean("billable").notNull().default(true),
+
+    endedAt: timestamp("ended_at", tstz),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("lesson_series_student_idx").on(t.studentId),
+    check("lesson_series_interval", sql`${t.intervalWeeks} between 1 and 8`),
+    check("lesson_series_duration", sql`${t.durationMinutes} between 1 and 600`),
+    check("lesson_series_range", sql`${t.untilDate} >= ${t.startDate}`),
+    check("lesson_series_time", sql`${t.timeLocal} ~ '^[0-2][0-9]:[0-5][0-9]$'`),
+  ],
+);
+
+export type LessonSeries = typeof lessonSeries.$inferSelect;
+
+/* ---------------------------------------------------------------- Guthaben */
+
+/**
+ * Vorausbezahlte Stunden.
+ *
+ * Zwei Arten, weil beide real vorkommen:
+ *
+ *  - kind='units'  Ein Kontingent an Einheiten fuer eine bestimmte Stundenlaenge.
+ *                  Das ist die 5er-Karte und der Ferienkurs aus der Preisliste:
+ *                  "5 Einheiten a 60 Minuten fuer 150 Euro".
+ *
+ *  - kind='amount' Ein reines Geldguthaben. Fuer den Fall "die Eltern zahlen
+ *                  300 Euro an, das wird verrechnet" - unabhaengig davon, wie
+ *                  lang die einzelnen Stunden werden.
+ *
+ * creditCents und priceCents sind bewusst getrennt: so laesst sich auch
+ * "200 Euro Guthaben fuer 180 Euro" abbilden, ohne dass der Rabatt verloren geht.
+ */
+export const creditPackages = pgTable(
+  "credit_packages",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    studentId: integer("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "restrict" }),
+
+    kind: text("kind").notNull(),
+    label: text("label").notNull(),
+
+    // Nur bei kind='units'
+    totalUnits: integer("total_units"),
+    unitDurationMinutes: integer("unit_duration_minutes"),
+
+    // Nur bei kind='amount': das verfuegbare Guthaben
+    creditCents: integer("credit_cents"),
+
+    // Was dafuer berechnet wird - bei beiden Arten
+    priceCents: integer("price_cents").notNull(),
+
+    purchasedOn: date("purchased_on", { mode: "string" }).notNull(),
+    paidOn: date("paid_on", { mode: "string" }),
+    // Optional: viele Guthaben verfallen nie, Ferienkurse schon.
+    expiresOn: date("expires_on", { mode: "string" }),
+
+    notes: text("notes"),
+    cancelledAt: timestamp("cancelled_at", tstz),
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("credit_packages_student_idx").on(t.studentId),
+    check("credit_packages_kind", sql`${t.kind} in ('units','amount')`),
+    check("credit_packages_label", sql`length(btrim(${t.label})) between 1 and 120`),
+    check("credit_packages_price", sql`${t.priceCents} >= 0`),
+    // Je nach Art muessen genau die passenden Felder gesetzt sein.
+    check(
+      "credit_packages_units_fields",
+      sql`${t.kind} <> 'units' or (${t.totalUnits} > 0 and ${t.unitDurationMinutes} between 1 and 600 and ${t.creditCents} is null)`,
+    ),
+    check(
+      "credit_packages_amount_fields",
+      sql`${t.kind} <> 'amount' or (${t.creditCents} > 0 and ${t.totalUnits} is null and ${t.unitDurationMinutes} is null)`,
+    ),
+    check("credit_packages_expiry", sql`${t.expiresOn} is null or ${t.expiresOn} >= ${t.purchasedOn}`),
+  ],
+);
+
+/**
+ * Eine Stunde, die gegen ein Guthaben verrechnet wurde.
+ *
+ * Der eindeutige Index auf lesson_id ist die eigentliche Sicherung: eine Stunde
+ * kann nie zweimal von einem Guthaben gedeckt werden. Zusammen mit dem
+ * Ausschluss verrechneter Stunden aus der Rechnungsstellung verhindert das,
+ * dass dieselbe Leistung zweimal kassiert wird.
+ */
+export const creditRedemptions = pgTable(
+  "credit_redemptions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    packageId: integer("package_id")
+      .notNull()
+      .references(() => creditPackages.id, { onDelete: "restrict" }),
+    lessonId: integer("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+
+    unitsUsed: integer("units_used").notNull().default(0),
+    centsUsed: integer("cents_used").notNull().default(0),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("credit_redemptions_lesson_key").on(t.lessonId),
+    index("credit_redemptions_package_idx").on(t.packageId),
+    check("credit_redemptions_amounts", sql`${t.unitsUsed} >= 0 and ${t.centsUsed} >= 0`),
+    check("credit_redemptions_nonzero", sql`${t.unitsUsed} > 0 or ${t.centsUsed} > 0`),
+  ],
+);
+
+export type CreditPackage = typeof creditPackages.$inferSelect;
+
+/* ------------------------------------------------------------- Nachrichten */
+
+/**
+ * Anfragen aus dem Kontaktformular der oeffentlichen Seite.
+ *
+ * Das ist der einzige Schreibzugriff im ganzen System, der ohne Anmeldung
+ * moeglich ist. Entsprechend gibt es eine Honeypot-Falle und eine Drosselung,
+ * und alle Felder sind laengenbegrenzt.
+ *
+ * Bewusst NICHT gespeichert: IP-Adresse und User-Agent. Fuer die Drosselung
+ * reicht die Zahl der Nachrichten im Zeitfenster, und Daten, die man nicht
+ * erhebt, muss man auch nicht schuetzen oder loeschen.
+ */
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    subject: text("subject"),
+    message: text("message").notNull(),
+
+    status: text("status").notNull().default("new"),
+    readAt: timestamp("read_at", tstz),
+    archivedAt: timestamp("archived_at", tstz),
+
+    // Benachrichtigung per E-Mail: best effort. Schlaegt der Versand fehl,
+    // ist die Nachricht trotzdem gespeichert - der Fehler wird hier vermerkt
+    // und im Posteingang angezeigt, damit er nicht unbemerkt bleibt.
+    notifiedAt: timestamp("notified_at", tstz),
+    notifyError: text("notify_error"),
+
+    createdAt: timestamp("created_at", tstz).notNull().defaultNow(),
+  },
+  (t) => [
+    index("contact_messages_created_idx").on(t.createdAt.desc()),
+    index("contact_messages_status_idx").on(t.status),
+    check("contact_messages_status", sql`${t.status} in ('new','read','archived')`),
+    check("contact_messages_name", sql`length(btrim(${t.name})) between 1 and 120`),
+    check("contact_messages_email", sql`length(btrim(${t.email})) between 3 and 200`),
+    check("contact_messages_message", sql`length(btrim(${t.message})) between 1 and 5000`),
+  ],
+);
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+
+export type Student = typeof students.$inferSelect;
+export type Tariff = typeof tariffs.$inferSelect;
+export type Lesson = typeof lessons.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type Settings = typeof settings.$inferSelect;

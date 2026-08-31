@@ -1,0 +1,1548 @@
+:root {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-accent: #f59e0b;
+  --color-bg: #ffffff;
+  --color-bg-alt: #f4f7fb;
+  --color-text: #1f2937;
+  --color-text-muted: #5b6472;
+  --color-border: #e2e8f0;
+  --radius: 12px;
+  --max-width: 1100px;
+  --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+
+  /* Bisher an mehreren Stellen hartkodiert, jetzt als Token */
+  --color-error: #dc2626;
+  --color-success: #16a34a;
+
+  /* Abstandsskala – im Bestand gab es keine, der Verwaltungsbereich braucht eine */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+picture {
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0 0 0.5em;
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 70px;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.logo span {
+  color: var(--color-primary);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.main-nav ul {
+  list-style: none;
+  display: flex;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+
+.main-nav a {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.main-nav a:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.nav-cta {
+  background: var(--color-primary);
+  color: #fff !important;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.nav-cta:hover {
+  background: var(--color-primary-dark);
+}
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: content-box;
+  width: 26px;
+  height: 20px;
+  padding: 12px;
+  margin-right: -12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--color-text);
+  border-radius: 2px;
+}
+
+/* Hero */
+.hero {
+  padding: 160px 0 120px;
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.94) 0%,
+      rgba(255, 255, 255, 0.85) 45%,
+      rgba(255, 255, 255, 0.35) 70%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    url("/img/herobanner.png");
+  background-size: cover;
+  background-position: center top;
+  text-align: left;
+}
+
+/* Moderne Browser: kleineres WebP-Hintergrundbild ausliefern */
+@supports (background-image: image-set(url("i.webp") type("image/webp"))) {
+  .hero {
+    background-image:
+      linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.94) 0%,
+        rgba(255, 255, 255, 0.85) 45%,
+        rgba(255, 255, 255, 0.35) 70%,
+        rgba(255, 255, 255, 0) 100%
+      ),
+      image-set(
+        url("/img/herobanner.webp") type("image/webp"),
+        url("/img/herobanner.png") type("image/png")
+      );
+  }
+}
+
+.hero-inner {
+  padding-top: 20px;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  max-width: 640px;
+}
+
+.hero-sub {
+  max-width: 640px;
+  margin-left: 4px;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: start;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.btn:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.profile-picture {
+  border-radius: 50%;
+  width: 250px;
+  height: 250px;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* Sections */
+.section {
+  padding: 70px 0;
+}
+
+.section-alt {
+  background: var(--color-bg-alt);
+}
+
+.section h2 {
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.section-intro {
+  text-align: center;
+  color: var(--color-text-muted);
+  max-width: 600px;
+  margin: 0 auto 2.5em;
+}
+
+/* About */
+.about-inner {
+  display: flex;
+  gap: 48px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.about-photo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-text {
+  flex: 1 1 400px;
+}
+
+.qualifications {
+  padding-left: 20px;
+  color: var(--color-text-muted);
+}
+
+.qualifications li {
+  margin-bottom: 6px;
+}
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.card-grid.two-col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.card-grid.single-col {
+  grid-template-columns: 1fr;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.card-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.card-meta {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Testimonials */
+.testimonial-card .stars {
+  color: var(--color-accent);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.testimonial-card .quote {
+  font-style: italic;
+  color: var(--color-text);
+}
+
+.testimonial-author {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Pricing */
+.price-card {
+  text-align: center;
+}
+
+.price-card.featured {
+  border-color: var(--color-primary);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.18);
+}
+
+.price-card.seasonal {
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.18);
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 8px 0;
+}
+
+.price span {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.price-note {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-top: 2em;
+}
+
+/* Contact */
+.contact-inner {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.form-row {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-text);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+input.invalid,
+textarea.invalid {
+  border-color: var(--color-error);
+}
+
+.error-msg {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  min-height: 1.2em;
+}
+
+.form-note {
+  margin-top: 14px;
+  font-weight: 600;
+}
+
+.form-note.success {
+  color: var(--color-success);
+}
+
+.form-note.error {
+  color: var(--color-error);
+}
+
+.contact-direct {
+  background: var(--color-bg-alt);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+
+.contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.contact-list li {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding: 24px 0;
+}
+
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.footer-nav a {
+  margin-left: 16px;
+  color: var(--color-text-muted);
+}
+
+/* Legal pages */
+.legal-page {
+  padding: 60px 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.legal-page h1 {
+  margin-bottom: 0.6em;
+}
+
+.legal-page h2 {
+  text-align: left;
+  font-size: 1.3rem;
+  margin-top: 1.6em;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+}
+
+/* Responsive */
+
+/* Tablet: dreispaltige Raster auf zwei Spalten reduzieren */
+@media (max-width: 900px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .hero {
+    padding: 120px 0 56px;
+    background-image:
+      linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.92),
+        rgba(255, 255, 255, 0.92)
+      ),
+      url("/img/herobanner.png");
+  }
+
+  @supports (background-image: image-set(url("i.webp") type("image/webp"))) {
+    .hero {
+      background-image:
+        linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.92),
+          rgba(255, 255, 255, 0.92)
+        ),
+        image-set(
+          url("/img/herobanner.webp") type("image/webp"),
+          url("/img/herobanner.png") type("image/png")
+        );
+    }
+  }
+
+  .main-nav {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow);
+    display: none;
+  }
+
+  .main-nav.open {
+    display: block;
+  }
+
+  .main-nav ul {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 20px 20px;
+    gap: 4px;
+  }
+
+  .main-nav a {
+    display: block;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .main-nav li:last-child a {
+    border-bottom: none;
+  }
+
+  .nav-cta {
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .section {
+    padding: 48px 0;
+  }
+
+  .card-grid,
+  .card-grid.two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .about-inner,
+  .contact-inner {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .about-photo {
+    align-self: center;
+  }
+}
+
+/* Smartphone */
+@media (max-width: 560px) {
+  .container {
+    padding: 0 16px;
+  }
+
+  .hero {
+    padding: 104px 0 48px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
+  .hero-sub {
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    gap: 12px;
+  }
+
+  .hero-actions .btn {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+
+  .section {
+    padding: 40px 0;
+  }
+
+  .section h2 {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    padding: 22px 20px;
+  }
+
+  .contact-direct {
+    padding: 22px 20px;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-nav a {
+    margin-left: 0;
+    margin-right: 16px;
+  }
+}
+
+/* ==========================================================================
+   Verwaltungsbereich
+   Baut auf denselben Tokens und Komponenten auf wie die oeffentliche Seite:
+   .container, .btn, .card, .form-row, .error-msg und die Breakpoints
+   900/800/560px werden wiederverwendet statt neu erfunden.
+   ========================================================================== */
+
+/* Anmeldung */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-bg-alt);
+}
+
+.login-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-6);
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-2);
+}
+
+.login-intro {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+  font-size: 0.95rem;
+}
+
+.login-card .btn {
+  width: 100%;
+  text-align: center;
+}
+
+/* Kopfzeile des Verwaltungsbereichs */
+.app-nav {
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.app-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  gap: var(--space-4);
+}
+
+.app-nav-links ul {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+}
+
+.app-nav-links a {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 6px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.app-nav-links a:hover {
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.app-nav-links a.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Als Link gestalteter Button, damit "Abmelden" als Formular laufen kann */
+.link-button {
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.link-button:hover {
+  color: var(--color-error);
+}
+
+.app-main {
+  padding: var(--space-6) 20px var(--space-6);
+}
+
+/* Seitenkopf mit Titel und Aktionen */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.page-head h1 {
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+.page-head .sub {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  margin: var(--space-1) 0 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.toolbar input[type="search"],
+.toolbar input[type="month"],
+.toolbar select {
+  min-width: 180px;
+}
+
+/* Kompakte Variante der Buttons fuer Listen und Werkzeugleisten */
+.btn-sm {
+  padding: 7px 16px;
+  font-size: 0.9rem;
+}
+
+/* Kennzahlen auf der Uebersicht */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.stat {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.stat-value.muted {
+  color: var(--color-text-muted);
+}
+
+/* Tabellen. Im Bestand gab es keine Tabellenstile. */
+.table-wrap {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.data-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-alt);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover td {
+  background: var(--color-bg-alt);
+}
+
+/* Betraege rechtsbuendig und mit Tabellenziffern, damit Spalten fluchten */
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table td.wrap {
+  white-space: normal;
+  min-width: 220px;
+}
+
+.row-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* Statusabzeichen */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-draft {
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.badge-open {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-planned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-held {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-no_show {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+/* Leerzustaende */
+.empty-state {
+  text-align: center;
+  padding: var(--space-6) var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.empty-state p {
+  margin-bottom: var(--space-4);
+}
+
+/* Formulare im Verwaltungsbereich */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 var(--space-5);
+}
+
+.form-grid .form-row.full {
+  grid-column: 1 / -1;
+}
+
+.form-section {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.form-section h2 {
+  text-align: left;
+  font-size: 1.1rem;
+  margin: 0 0 var(--space-2);
+}
+
+.form-section .hint {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 var(--space-4);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Warnhinweis, z. B. bei Terminueberschneidungen */
+.notice {
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: 0.95rem;
+  border: 1px solid;
+}
+
+.notice-warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.notice-error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.notice-info {
+  background: var(--color-bg-alt);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 900px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Navigation klappt wie auf der oeffentlichen Seite in ein Menue */
+  .app-nav-links {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow);
+  }
+
+  .app-nav-links.open {
+    display: block;
+  }
+
+  .app-nav-links ul {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--space-2) 20px var(--space-4);
+  }
+
+  .app-nav-links li {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .app-nav-links a,
+  .link-button {
+    display: block;
+    padding: 12px 0;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-main {
+    padding: var(--space-5) 16px;
+  }
+}
+
+/* Kalender */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.calendar-weekday {
+  background: var(--color-bg-alt);
+  padding: 10px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.calendar-day {
+  background: #fff;
+  min-height: 110px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-day.other-month {
+  background: var(--color-bg-alt);
+}
+
+.calendar-day.other-month .calendar-daynum {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.calendar-day.today {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.calendar-daynum {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.calendar-daynum a {
+  color: inherit;
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px;
+}
+
+.calendar-day.today .calendar-daynum a {
+  color: var(--color-primary);
+}
+
+.calendar-event {
+  font-size: 0.78rem;
+  line-height: 1.3;
+  padding: 3px 5px;
+  border-radius: 6px;
+  background: #dbeafe;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: space-between;
+}
+
+.calendar-event a {
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event.held {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.calendar-event.cancelled {
+  background: #f1f5f9;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.calendar-event.no_show {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+/* Kompakter Haken, um einen Termin als gehalten zu markieren */
+.hold-button {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+
+.hold-button:hover {
+  background: #fff;
+}
+
+/* Agenda-Liste: nur auf schmalen Bildschirmen sichtbar */
+.calendar-agenda {
+  display: none;
+}
+
+.calendar-agenda ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.calendar-agenda li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-agenda li:last-child {
+  border-bottom: 0;
+}
+
+.calendar-agenda .agenda-price {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 800px) {
+  /* Sieben Spalten sind auf dem Telefon unbenutzbar – dort die Agenda zeigen */
+  .calendar-grid {
+    display: none;
+  }
+
+  .calendar-agenda {
+    display: block;
+  }
+}
+
+/* ==========================================================================
+   Rechnungsdruck
+   Das Blatt sieht am Bildschirm so aus wie im Ausdruck. Ausgabe ueber
+   "Drucken -> Als PDF sichern", ohne PDF-Bibliothek.
+   ========================================================================== */
+
+.print-bar {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  max-width: 210mm;
+  margin: var(--space-5) auto 0;
+  padding: 0 var(--space-5);
+}
+
+.invoice-sheet {
+  background: #fff;
+  max-width: 210mm;
+  margin: var(--space-5) auto var(--space-6);
+  padding: 20mm 18mm;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.invoice-sender-line {
+  font-size: 7.5pt;
+  color: var(--color-text-muted);
+  border-bottom: 0.5pt solid var(--color-border);
+  padding-bottom: 2mm;
+  margin: 0 0 2mm;
+}
+
+/* Adressfeld in Fensterposition nach DIN 5008 */
+.invoice-address-field {
+  font-style: normal;
+  min-height: 27mm;
+  width: 85mm;
+  margin-bottom: 12mm;
+}
+
+.invoice-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8mm;
+}
+
+.invoice-meta table {
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.invoice-meta th {
+  text-align: left;
+  font-weight: 600;
+  padding: 1mm 6mm 1mm 0;
+  color: var(--color-text-muted);
+}
+
+.invoice-meta td {
+  text-align: right;
+  padding: 1mm 0;
+}
+
+.invoice-title {
+  font-size: 15pt;
+  margin: 0 0 4mm;
+}
+
+.invoice-intro {
+  margin: 0 0 6mm;
+}
+
+.invoice-items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6mm;
+}
+
+.invoice-items th,
+.invoice-items td {
+  padding: 2mm 3mm;
+  text-align: left;
+  border-bottom: 0.5pt solid var(--color-border);
+  vertical-align: top;
+}
+
+.invoice-items thead th {
+  border-bottom: 1pt solid var(--color-text);
+  font-size: 9.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.invoice-items .num,
+.invoice-totals .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.invoice-totals {
+  margin-left: auto;
+  border-collapse: collapse;
+  min-width: 70mm;
+}
+
+.invoice-totals th {
+  text-align: left;
+  font-weight: 400;
+  padding: 1.5mm 6mm 1.5mm 0;
+}
+
+.invoice-totals td {
+  padding: 1.5mm 0;
+}
+
+.invoice-totals .grand th,
+.invoice-totals .grand td {
+  border-top: 1pt solid var(--color-text);
+  font-weight: 700;
+  font-size: 12pt;
+  padding-top: 2mm;
+}
+
+.invoice-tax-note {
+  margin: 6mm 0;
+  font-size: 10pt;
+}
+
+.invoice-payment {
+  margin-top: 8mm;
+  font-size: 10pt;
+}
+
+.invoice-payment table {
+  border-collapse: collapse;
+  margin-top: 2mm;
+}
+
+.invoice-payment th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.5mm 6mm 0.5mm 0;
+  color: var(--color-text-muted);
+}
+
+.invoice-footer-note {
+  margin-top: 6mm;
+  font-size: 9.5pt;
+  color: var(--color-text-muted);
+}
+
+.invoice-footer {
+  margin-top: 12mm;
+  padding-top: 3mm;
+  border-top: 0.5pt solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-5);
+  font-size: 8.5pt;
+  color: var(--color-text-muted);
+}
+
+@page {
+  size: A4;
+  margin: 18mm 16mm;
+}
+
+@media print {
+  /* Bedienelemente gehoeren nicht aufs Papier */
+  .print-bar,
+  .app-nav,
+  .toolbar,
+  .btn {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .invoice-sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Bei mehrseitigen Rechnungen den Tabellenkopf wiederholen und
+     Zeilen nicht mitten im Satz umbrechen. */
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  .invoice-totals,
+  .invoice-payment {
+    break-inside: avoid;
+  }
+
+  /* Browser haengen im Druck sonst die URL an jeden Link */
+  a[href]::after {
+    content: "";
+  }
+
+  /* Hintergrundfarben sind im Druck standardmaessig aus – deshalb wird
+     ueberall mit Linien statt mit Flaechen gearbeitet. */
+}
+
+/* Kennzeichnung von Serienterminen */
+.series-mark {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+
+/* Honeypot gegen Formular-Bots: fuer Menschen unsichtbar, aber nicht per
+   display:none - das erkennen manche Bots. */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Zaehler ungelesener Nachrichten in der Navigation */
+.nav-badge {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Vorschau und Hilfe zu Rechnungsnummern-Vorlagen */
+.template-preview {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.template-preview strong {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color: var(--color-text);
+}
+
+.template-help {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  background: var(--color-bg-alt);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.template-help li {
+  margin-bottom: 2px;
+}
+
+.template-help code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color: var(--color-text);
+  margin-right: 6px;
+}
