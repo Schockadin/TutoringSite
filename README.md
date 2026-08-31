@@ -69,8 +69,47 @@ npm run test:nummernkreise     #            – Rechnungsnummern-Vorlagen und Nu
 ```
 
 Die Tests laufen gegen einen echten Server und eine echte Datenbank. `tests/workflow.mjs`
-erwartet eine leere Datenbank und prüft unter anderem, dass eine 90-Minuten-Stunde 45 € kostet
-und nicht 52,50 € – der Preis kommt aus der Tariftabelle, nicht aus Dauer × Stundensatz.
+prüft unter anderem, dass eine 90-Minuten-Stunde 45 € kostet und nicht 52,50 € – der Preis
+kommt aus der Tariftabelle, nicht aus Dauer × Stundensatz.
+
+**Jede** Datei erwartet eine leere Datenbank und räumt nicht selbst auf; nacheinander in
+derselben Datenbank ausgeführt fallen sie durch, weil Kundennummern und Zähler weiterlaufen.
+Vor jedem Lauf also zurücksetzen – und dabei **beide** Schemata löschen:
+
+```bash
+psql "$DATABASE_URL" -c "drop schema if exists drizzle cascade; drop schema public cascade; create schema public;"
+npm run db:migrate && npm run db:seed
+```
+
+Das `drizzle`-Schema enthält das Migrationsjournal. Wer nur `public` löscht, bekommt von
+`db:migrate` ein zufriedenes „Migrationen angewendet" **ohne eine einzige Tabelle**, weil
+drizzle sie laut Journal für längst angewendet hält.
+
+Achtung beim Zurücksetzen: `DATABASE_URL` aus der Umgebung kann auf die Produktionsdatenbank
+zeigen und sticht die Datei `.env.local`. Vor einem `drop schema` die Zielhost prüfen.
+
+## Icons
+
+```bash
+npm run icons      # erzeugt alles unter public/ neu
+```
+
+Quelle ist `scripts/icons/design.mjs` – reine Pfade, keine Bilddateien im Repo-Sinn: eine
+Farbänderung ist eine Zeile statt zehn Neuexporte.
+
+Es gibt **drei Zeichnungen, nicht eine skalierte**. Bei 16 px verschwimmen Ringschrift, Atom
+und Schriftrolle zu einem Fleck; bei 180 px wäre die Ringschrift elf Pixel hoch und zerfiele
+beim Rastern zu einem grauen Saum. Also: `fullSvg` mit Ringschrift ab 256 px, `mediumSvg` ohne
+Schrift für 96–192 px, `simpleSvg` mit nur Ring und Monogramm bis 48 px.
+
+Die Ringschrift wird Buchstabe für Buchstabe gesetzt, nicht über `<textPath>` – die
+verbreiteten SVG-Rasterizer setzen einfachen Text, Text entlang eines Pfades aber nicht, der
+Ring bliebe leer. Die Winkelschritte folgen den Buchstabenbreiten aus `BREITEN`: bei
+gleichmäßigen Schritten klebt ein `W` am Nachbarn, während ein `I` allein steht.
+
+`apple-touch-icon.png` ist **PNG, nicht SVG** – iOS unterstützt für Apple-Touch-Icons kein
+SVG und zeigte sonst einen leeren Platzhalter. Es ist außerdem vollflächig deckend, weil iOS
+transparente Bereiche schwarz hinterlegt.
 
 ## Entwurfsentscheidungen, die man kennen sollte
 

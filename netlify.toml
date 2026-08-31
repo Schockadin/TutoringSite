@@ -33,8 +33,21 @@
   [headers.values]
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
 
+# Die Icons aus scripts/icons/ liegen ebenfalls unter festen Namen und werden
+# bei einer Aenderung des Designs in place ersetzt – gleiche Begruendung wie
+# oben: kurz cachen, im Hintergrund erneuern, nie immutable.
 [[headers]]
-  for = "/favicon.svg"
+  for = "/favicon*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/icon-*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+[[headers]]
+  for = "/apple-touch-icon.png"
   [headers.values]
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
 

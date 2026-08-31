@@ -22,7 +22,8 @@
     "test:serien": "node tests/serien.mjs",
     "test:guthaben": "node tests/guthaben.mjs",
     "test:kontakt": "node tests/kontakt.mjs",
-    "test:nummernkreise": "node tests/nummernkreise.mjs"
+    "test:nummernkreise": "node tests/nummernkreise.mjs",
+    "icons": "node scripts/icons/build.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -38,6 +39,7 @@
     "@types/react-dom": "19.2.5",
     "drizzle-kit": "0.31.10",
     "playwright": "1.62.1",
+    "sharp": "0.35.4",
     "typescript": "5.9.3"
   }
 }
